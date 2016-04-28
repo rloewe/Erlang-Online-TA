@@ -1,0 +1,16 @@
+\section*{Program APIs}
+\subsection*{Master API}
+\begin{description}
+  \item[connect\_to/1(Maybe 2 for node specs):] node(). Sync, reply ok.
+  \item[send\_assignment\_job/2:] assignment\_id,[files]. Sync -> {ok, session\_token}.
+  \item[get\_assignment\_job\_status/1:] session\_token. Sync -> {ok,status}.
+  \item[add\_assignment/1:] config\_file. Sync -> ok, {error,parse\_error}.
+  \item[start/0:] gen\_server:start\_link.
+  \item[assignment\_job\_update/2:] session\_token, new\_status. Sync -> ok. 
+\end{description}
+\subsection*{Node API}
+\begin{description}
+    \item[start/0:] gen\_server:start\_link, read config file, master:connect\_to. Sync -> ok.
+    \item[add\_assignment/1:] parsed\_config. Sync -> ok.
+    \item[queue\_assignment\_job/3:] assignment\_id,[files],session\_token. Sync -> ok.
+\end{description}
