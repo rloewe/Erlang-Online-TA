@@ -1,0 +1,75 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+%\usepackage [danish]{babel} % Vi burde ikke have brug for den her
+\usepackage[a4paper, hmargin={2.8cm, 2.8cm}, vmargin={2.5cm, 2.5cm}]{geometry}
+\usepackage{eso-pic} % \AddToShipoutPicture
+\usepackage{graphicx} % \includegraphics
+
+% Så er der header
+\usepackage{fancyhdr}
+\setlength{\headheight}{15.2pt}
+\pagestyle{fancy}
+\rhead[\today]{\today}
+
+\usepackage{wrapfig, blindtext}
+\usepackage{array}
+\usepackage{import}
+\usepackage[hidelinks]{hyperref}
+\usepackage{verbatim}
+\usepackage{todonotes}
+\usepackage{algorithm}
+\usepackage{float}
+\linespread{1.2}
+\usepackage{pbox}
+\usepackage{amsthm} 
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{listings}
+\lstset{language=C++,
+           basicstyle=\ttfamily,
+           keywordstyle=\color{blue}\ttfamily,
+           stringstyle=\color{red}\ttfamily,
+           frame = single,
+           commentstyle=\color{green}\ttfamily,
+           breaklines=true,
+           numbers=left
+          }
+\usepackage[toc,page]{appendix}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata,fit,positioning}
+\usepackage{amsfonts}
+\usepackage{standalone}
+\newtheorem{theorem}{Teorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{korollar}{Korollar}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\newcommand*\Let[2]{\State #1 $\gets$ #2}
+\usepackage[noend]{algpseudocode}
+
+\usepackage{algorithmicx}
+\allowdisplaybreaks
+
+\newtheorem{mydef}{Definition}
+\newtheorem{myex}{Example}[section]
+\usepackage{caption}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+
+\title{
+  \vspace{3cm}
+  \Huge{XMP - Theory assignment 2} \\
+  \Large{Simon Nicolai Lefoli Maibom - xvm226}
+}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\newcommand{\myfl}{\left\lfloor}
+\newcommand{\myfr}{\right\rfloor}
+\newcommand{\mycl}{\left\lceil}
+\newcommand{\mycr}{\right\rceil}
+\begin{document}
+\end{document}
