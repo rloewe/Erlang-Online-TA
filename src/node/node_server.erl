@@ -15,7 +15,7 @@ init([MasterNode]) ->
     case gen_server:call({add_node,node(),none}) of
         ok -> 
             Queue = none,
-            Assignments = dict:dict(),
+            Assignments = dict:new(),
             CurrentJobs = [],
             {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
         _ ->

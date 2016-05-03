@@ -12,9 +12,9 @@ start(ConfigFile) ->
     gen_server:start_link({global, master}, ?MODULE, [], []).
 
 init([]) ->
-    Nodes = dict:dict(),
-    Session = dict:dict(),
-    Assignments = dict:dict(),
+    Nodes = dict:new(),
+    Session = dict:new(),
+    Assignments = dict:new(),
     {ok, {Nodes,Session,Assignments}}.
 
 handle_cast(_Message, State) ->
