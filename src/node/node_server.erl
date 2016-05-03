@@ -29,8 +29,6 @@ init([MasterNode,Specs]) ->
 handle_cast(_Message, State) ->
     {noreply, State}.
 
-
-
 handle_call(_Message, _From, State) ->
     {reply, error, State}.
 
