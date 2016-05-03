@@ -6,14 +6,15 @@
 
 start(_ConfigFile) ->
     %TODO add parse config
-    {Cookie,MasterNode} = {test,'master@10.129.1.181'},
+    {Cookie,MasterNode} = {test,'master@198.211.122.172'},
     erlang:set_cookie(node(),Cookie),
+    net_kernel:connect_node(MasterNode),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode], []).
 
 init([MasterNode]) ->
     %master:connect_to(node()),
-    case gen_server:call({add_node,node(),none}) of
-        ok -> 
+    case gen_server:call({global, master},{add_node,node(),none}) of
+        ok ->
             Queue = none,
             Assignments = dict:new(),
             CurrentJobs = [],
