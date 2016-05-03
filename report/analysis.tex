@@ -1,0 +1,31 @@
+\section*{Analysis}
+
+Sandbox:
+- Maks. hukommelse
+- Maks. tid
+- I/O access
+
+Master:
+- Rettigheder (hieraki) - eks. TA, Lecturer eller student
+- Håndtering af opgavedefinition evt. vha. DSL
+- Placering af studerende på opgave
+- monitorering af nodes
+- også gemme opgaver på master, så de kan sendes til andre ved crash
+- håndtering af fjernelse og oprettelse af nodes
+
+Node:
+- kø af opgaver
+- fast eller variabel mængde retteprocesser
+- monitorering af retteprocesser
+- fejlhåndtering ved gentagne crashes
+- kontakter master og siger "Hey, jeg er klar"
+
+
+DSL ideer:
+- required linux packages
+- grading routine/run order
+- I/O (Network-allowed, disk-allowed), default false
+- Name (assignment identifier)
+- Max runtime (some default, some maximum)
+- Max memory (some default, some maximum)
+- Output (default = stdout, kan være fil, max size?)
