@@ -2,7 +2,10 @@
 -behaviour(gen_server).
 -import (config_parser, [parse_config/1]).    
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1]).
+-export([start/1,connect_to/2]).
+
+connect_to(Node,Specs) ->
+    gen_server:call({global,master},{add_node,Node,Specs}).
 
 start(ConfigFile) ->
     %TODO Find a way to add libs to erlang path
