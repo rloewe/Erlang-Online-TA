@@ -20,7 +20,8 @@ init([MasterNode,Specs]) ->
             Assignments = dict:new(),
             CurrentJobs = [],
             {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
-        _ ->
+        A ->
+            io:format("~p",[A]),
             {stop,nocon}
     end.
 
