@@ -1,4 +1,4 @@
--module (lib.config_parser).
+-module (config_parser).
 -export ([parse_config/1]).
 
 parse_config(ConfigFile) ->
