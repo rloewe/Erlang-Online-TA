@@ -1,8 +1,11 @@
 -module(master_server).
 -behaviour(gen_server).
+
 -import (config_parser, [parse_config/1]).    
+-import (assigment_parser, [parse_assignment/1]).
+
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1,connect_to/2,get_assignment_status/1,send_assignment/2)]).
+-export([start/1,connect_to/2,get_assignment_status/1,send_assignment/2,add_assignment/1]).
 
 connect_to(Node,Specs) ->
     gen_server:call({global,master},{add_node,Node,Specs}).
@@ -20,6 +23,9 @@ get_assignment_status(SessionToken) ->
 send_assignment(AssignmentID,Files) ->
     %Do some magic to deal with files
     gen_server:call({global,master},{send_assignment,AssignmentID,Files}).
+
+add_assignment(AssignmentConfig) ->
+    gen_server:call({global,master},{add_assignment,AssignmentConfig}).
 
 init([]) ->
     Nodes = dict:new(),
@@ -58,15 +64,18 @@ handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignme
             if 
                 NumberOfNodes > 0 ->
                     SessionToken = make_ref(),
+                    io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    %Do some magic with the node
+                    %TODO some magic with the node
                     NewSessions = dict:append(SessionToken,{AssignmentID,running},Sessions),
                     Reply = {ok,SessionToken};
                 true ->
+                    io:format("Could not start session, no nodes available"),
                     NewSessions = Sessions,
                     Reply = {error,no_nodes}
             end;
         false ->
+            io:format("no assignment id matching the given argument"),
             NewSessions = Sessions,
             Reply = {error,no_assignment_id}
     end, 
@@ -82,6 +91,24 @@ handle_call({assignment_status,SessionToken}, _From, {Nodes,Sessions,Assignments
             Reply = {error,no_session}
     end,
     {reply, Reply, {Nodes,Sessions,Assignments}};
+
+
+handle_call(
+  {add_assignment,AssignmentConfig},
+  _From, 
+  {Nodes,Sessions,Assignments}) ->
+    AssignmentID = parse_assignment(AssignmentConfig),
+    case dict:is_key(AssignmentID,Assignments) of 
+        true ->
+            NewAssignments = Assignments,
+            Reply = {error,assignment_exist};
+        false ->
+            NewAssignments = dict:append(AssignmentID,none,Assignments),
+            Reply = ok
+    end,
+    {reply, Reply, {Nodes,Sessions,NewAssignments}};
+
+
 
 handle_call(_Message, _From, State) ->
     {reply, error, State}.

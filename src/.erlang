@@ -1,1 +1,1 @@
-code:add_paths(["./lib","./master",".node"]).
+code:add_paths(["./lib","./master","./node"]).
