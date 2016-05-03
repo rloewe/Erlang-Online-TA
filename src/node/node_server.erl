@@ -7,7 +7,7 @@
 start(_ConfigFile) ->
     %TODO add parse config
     {Cookie,MasterNode} = {test,'master@10.129.1.181'},
-    erlang:set_cookie(Cookie),
+    erlang:set_cookie(node(),Cookie),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode], []).
 
 init([MasterNode]) ->
