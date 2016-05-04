@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 
 -import (config_parser, [parse_config/1]).    
--import (assigment_parser, [parse_assignment/1]).
+-import (assignment_parser, [parse_assignment/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/2,get_assignment_status/1,send_assignment/2,add_assignment/1]).
@@ -83,7 +83,7 @@ handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignme
 
 
 handle_call({assignment_status,SessionToken}, _From, {Nodes,Sessions,Assignments}) ->
-    case dict:is_key(SessionToken) of 
+    case dict:is_key(SessionToken,Sessions) of 
         true ->
             {_,Status} = dict:fetch(SessionToken,Sessions),
             Reply = {ok,Status};
