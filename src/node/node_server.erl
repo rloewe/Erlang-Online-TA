@@ -1,16 +1,23 @@
 -module(node_server).
 -behaviour(gen_server).
 -import (master_server, [connect_to/3]).
--import (config_parser, [parse_config/1]).
+-import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1, queue_assignment_job/4]).
 
-start(_ConfigFile) ->
+start(Path) ->
     %TODO add parse config
-    {Cookie,MasterNode,Specs} = {test,'master@198.211.122.172',none},
-    erlang:set_cookie(node(),Cookie),
-    net_kernel:connect_node(MasterNode),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode,Specs], []).
+    case parse(Path, false) of
+        {ok, Config} ->
+            Cookie = dict:fetch("Cookie", Config),
+            MasterNode = dict:fetch("Master", Config),
+            Specs = none,
+            erlang:set_cookie(node(),Cookie),
+            net_kernel:connect_node(MasterNode),
+            gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode,Specs], []);
+        {error, Msg} ->
+            io:format("~p", [Msg])
+    end.
 
 queue_assignment_job(Node, AssignmentID, Files, SessionToken) ->
     gen_server:call({?MODULE, Node}, {queue_job, {AssignmentID, Files, SessionToken}}).

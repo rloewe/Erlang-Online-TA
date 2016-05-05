@@ -1,10 +1,9 @@
 -module(master_server).
 -behaviour(gen_server).
 
--import (config_parser, [parse_config/1]).    
 -import (assignment_parser, [parse_assignment/1]).
 -import (node_server, [queue_assignment_job/4]).
-
+-import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/3,get_assignment_status/2,send_assignment/3,
         add_assignment/2,assignment_job_updated/3]).
@@ -13,11 +12,14 @@ connect_to(Node,Specs,MasterNode) ->
     gen_server:call({master,MasterNode},{add_node,Node,Specs}).
 
 start(ConfigFile) ->
-    %TODO Find a way to add libs to erlang path
-    %Cookie = parse_config(ConfigFile),
-    Cookie = test,
-    erlang:set_cookie(node(),Cookie),
-    gen_server:start_link({local,master}, ?MODULE, [], []).
+    case parse(ConfigFile, true) of
+        {ok, Config} ->
+            Cookie = dict:fetch("Cookie", Config),
+            erlang:set_cookie(node(),Cookie),
+            gen_server:start_link({global, master}, ?MODULE, [], []);
+        {error, Msg} ->
+            io:format("~p", [Msg])
+    end.
 
 get_assignment_status(SessionToken,MasterNode) ->
     gen_server:call({master,MasterNode},{assignment_status,SessionToken}).
