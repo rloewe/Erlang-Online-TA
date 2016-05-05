@@ -67,7 +67,7 @@ handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignme
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    Res = queue_assignment_job(Node,AssignmentID,Files,SessionTokens),
+                    Res = queue_assignment_job(Node,AssignmentID,Files,SessionToken),
                     %TODO some magic with the node
                     NewSessions = dict:append(SessionToken,{AssignmentID,running},Sessions),
                     Reply = {ok,SessionToken};
