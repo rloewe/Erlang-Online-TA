@@ -6,7 +6,8 @@
 -import (node_server, [queue_assignment_job/4]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1,connect_to/2,get_assignment_status/1,send_assignment/2,add_assignment/1]).
+-export([start/1,connect_to/2,get_assignment_status/1,send_assignment/2,
+        add_assignment/1,assignment_job_updated/2]).
 
 connect_to(Node,Specs) ->
     gen_server:call({global,master},{add_node,Node,Specs}).
@@ -28,6 +29,9 @@ send_assignment(AssignmentID,Files) ->
 add_assignment(AssignmentConfig) ->
     gen_server:call({global,master},{add_assignment,AssignmentConfig}).
 
+assignment_job_updated(SessionToken,NewStatus) ->
+    gen_server:call({global,master},{update_job,SessionToken,NewStatus}).
+
 init([]) ->
     Nodes = dict:new(),
     Session = dict:new(),
@@ -47,7 +51,7 @@ handle_call({add_node,Node,Specs}, _From, {Nodes,Sessions,Assignments}) ->
         false ->
             case net_kernel:connect_node(Node) of
                 true ->
-                    NewNodes = dict:append(Node,Specs,Nodes);
+                    NewNodes = dict:store(Node,Specs,Nodes);
                 false ->
                     NewNodes = Nodes;
                 ignored ->
@@ -67,10 +71,10 @@ handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignme
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    Res = queue_assignment_job(Node,AssignmentID,Files,SessionToken),
+                    Status = queue_assignment_job(Node,AssignmentID,Files,SessionToken),
                     %TODO some magic with the node
-                    NewSessions = dict:append(SessionToken,{AssignmentID,running},Sessions),
-                    Reply = {ok,SessionToken};
+                    NewSessions = dict:store(SessionToken,{AssignmentID,Status},Sessions),
+                    Reply = {ok,{SessionToken,Status}};
                 true ->
                     io:format("Could not start session, no nodes available"),
                     NewSessions = Sessions,
@@ -106,11 +110,29 @@ handle_call(
             NewAssignments = Assignments,
             Reply = {error,assignment_exist};
         false ->
-            NewAssignments = dict:append(AssignmentID,none,Assignments),
+            NewAssignments = dict:store(AssignmentID,none,Assignments),
             Reply = ok
     end,
     {reply, Reply, {Nodes,Sessions,NewAssignments}};
 
+
+handle_call({update_job,SessionToken,NewStatus}, _From, {Nodes,Sessions,Assignments}) ->
+    case dict:is_key(SessionToken,Sessions) of
+        true ->
+            case NewStatus of 
+                running ->
+                    NewSessions = dict:store(SessionToken,NewStatus,Sessions),
+                    Reply = {ok,updated};
+                {finished,ReturnVal} ->
+                    %TODO magic with files and return call to end user
+                    NewSessions = dict:erase(SessionToken,Sessions),
+                    Reply = {ok,finished}
+            end;
+        false ->
+            Reply = {error,nosess},
+            NewSessions = Sessions
+    end,
+    {reply, Reply, {Nodes,Sessions,Assignments}}.
 
 
 handle_call(_Message, _From, State) ->

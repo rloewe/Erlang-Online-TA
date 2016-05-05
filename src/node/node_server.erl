@@ -48,7 +48,7 @@ handle_call(
        true ->
            NewQueue = queue:in(Assignment, Queue),
            io:format("Queue: ~p ~nCurrentJobs: ~p", [NewQueue, CurrentJobs]),
-           {reply, ok, {NewQueue, Assignments, CurrentJobs, MasterNode}}
+           {reply, queued, {NewQueue, Assignments, CurrentJobs, MasterNode}}
     end;
     
 handle_call(_Message, _From, State) ->
