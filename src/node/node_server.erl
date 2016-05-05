@@ -1,6 +1,6 @@
 -module(node_server).
 -behaviour(gen_server).
--import (master_server, [connect_to/2]).
+-import (master_server, [connect_to/3]).
 -import (config_parser, [parse_config/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1, queue_assignment_job/4]).
@@ -17,7 +17,7 @@ queue_assignment_job(Node, AssignmentID, Files, SessionToken) ->
 
 init([MasterNode,Specs]) ->
     %master:connect_to(node()),
-    case connect_to(node(),Specs) of
+    case connect_to(node(),Specs,MasterNode) of
         ok ->
             Queue = queue:new(),
             Assignments = dict:new(),

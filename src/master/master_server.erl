@@ -6,31 +6,31 @@
 -import (node_server, [queue_assignment_job/4]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1,connect_to/2,get_assignment_status/1,send_assignment/2,
-        add_assignment/1,assignment_job_updated/2]).
+-export([start/1,connect_to/3,get_assignment_status/2,send_assignment/3,
+        add_assignment/2,assignment_job_updated/3]).
 
-connect_to(Node,Specs) ->
-    gen_server:call({global,master},{add_node,Node,Specs}).
+connect_to(Node,Specs,MasterNode) ->
+    gen_server:call({master,MasterNode},{add_node,Node,Specs}).
 
 start(ConfigFile) ->
     %TODO Find a way to add libs to erlang path
     %Cookie = parse_config(ConfigFile),
     Cookie = test,
     erlang:set_cookie(node(),Cookie),
-    gen_server:start_link({global, master}, ?MODULE, [], []).
+    gen_server:start_link({local,master}, ?MODULE, [], []).
 
-get_assignment_status(SessionToken) ->
-    gen_server:call({global,master},{assignment_status,SessionToken}).
+get_assignment_status(SessionToken,MasterNode) ->
+    gen_server:call({master,MasterNode},{assignment_status,SessionToken}).
 
-send_assignment(AssignmentID,Files) ->
+send_assignment(AssignmentID,Files,MasterNode) ->
     %Do some magic to deal with files
-    gen_server:call({global,master},{send_assignment,AssignmentID,Files}).
+    gen_server:call({master,MasterNode},{send_assignment,AssignmentID,Files}).
 
-add_assignment(AssignmentConfig) ->
-    gen_server:call({global,master},{add_assignment,AssignmentConfig}).
+add_assignment(AssignmentConfig,MasterNode) ->
+    gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig}).
 
-assignment_job_updated(SessionToken,NewStatus) ->
-    gen_server:call({global,master},{update_job,SessionToken,NewStatus}).
+assignment_job_updated(SessionToken,NewStatus,MasterNode) ->
+    gen_server:call({master,MasterNode},{update_job,SessionToken,NewStatus}).
 
 init([]) ->
     Nodes = dict:new(),
@@ -132,7 +132,7 @@ handle_call({update_job,SessionToken,NewStatus}, _From, {Nodes,Sessions,Assignme
             Reply = {error,nosess},
             NewSessions = Sessions
     end,
-    {reply, Reply, {Nodes,Sessions,Assignments}}.
+    {reply, Reply, {Nodes,Sessions,Assignments}};
 
 
 handle_call(_Message, _From, State) ->
