@@ -23,7 +23,7 @@ queue_assignment_job(Node, AssignmentID, Files, SessionToken) ->
     gen_server:call({?MODULE, Node}, {queue_job, {AssignmentID, Files, SessionToken}}).
 
 finish_assignment_job(Node,SessionToken,Res) ->
-    gen_server:call({?MODULE,Node},{update_job,{SessionToken,Res}}).
+    gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
 
 init([MasterNode,Specs]) ->
     %master:connect_to(node()),
@@ -51,10 +51,11 @@ handle_call(
     %TODO handle assignment id
     %TODO fix magic constant
     %TODO Name FSM uniquely
+    %TODO Dont have a hardcoded fsm name.....
     if length(CurrentJobs) < 2 ->
            {AssignmentID, Files, SessionToken} = Assignment,
-           Fsm = correct_fsm:start_link({SessionToken,node()}),
-           correct_fsm:start_job(SessionToken,{none,none}),
+           Fsm = correct_fsm:start_link({fsm1,node()}),
+           correct_fsm:start_job(fsm1,{none,none,SessionToken}),
            NewCurrentJobs = dict:store(SessionToken,{AssignmentID,Files},CurrentJobs),
            io:format("Queue: ~p ~nCurrentJobs: ~p", [Queue, NewCurrentJobs]),
            {reply, started, {Queue, Assignments, NewCurrentJobs, MasterNode}};

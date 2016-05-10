@@ -120,6 +120,7 @@ handle_call({update_job,SessionToken,NewStatus}, _From, {Nodes,Sessions,Assignme
                     {reply, {ok,updated}, {Nodes,NewSessions,Assignments}};
                 {finished,ReturnVal} ->
                     %TODO magic with files and return call to end user
+                    io:format("Master server job finished ~p \n",[ReturnVal]),
                     NewSessions = dict:erase(SessionToken,Sessions),
                     {reply, {ok,finished}, {Nodes,NewSessions,Assignments}}
             end;
