@@ -1,31 +1,43 @@
 \section*{Analysis}
+To create a distributed server structure that can handle load, which most
+likely changes over time, our idea is that a master-slave architecture makes
+most sense. Here the master server should handle everything related to receiving
+and distributing assignments and the slave should correct them. To make the
+infrastructure more dynamic, slaves servers should be able to connect and
+disconnect at will, so that increasing or decreasing workload can be easily
+handled.
 
-Sandbox:
-- Maks. hukommelse
-- Maks. tid
-- I/O access
+\subsection*{Master server}
+%TODO: indledning.
+It has to
+make sure that we create a somewhat equal load on all our nodes and that we
+monitor our nodes, so we do not send handins to non-responding servers.
+Handins might also need to be handled with a fairness system in mind, such that
+students can not create a DOS attack by uploading their handins several times in
+a row.
+The master should also be able to handle different types of assignments, which
+means that there should be a way that these can be described and some way of
+authorizing the users who should be able to upload such.
+The assignments will then have to be distributed to all nodes, also new nodes
+which join at a later stage.
+There should also be someway of interfacing with the master server, so that it
+can be 
 
-Master:
-- Rettigheder (hieraki) - eks. TA, Lecturer eller student
-- Håndtering af opgavedefinition evt. vha. DSL
-- Placering af studerende på opgave
-- monitorering af nodes
-- også gemme opgaver på master, så de kan sendes til andre ved crash
-- håndtering af fjernelse og oprettelse af nodes
+\subsection*{Node server}
+The node server has a main goal, which is to correct assignments, but it also
+needs to handle receiving the assignments and queuing them. It also needs to
+make sure that the assignments are run in a secure manner, such that a student
+will no be able to read other students assignments and/or mess with the system.
+This can be fixed in multiple ways and might be different for each assignment,
+therefore the system should be able to handle this.
+Error handling is also something the nodes should do, for example an assignment
+should be able to run again, if a server error happens, but should be stopped if
+it fails multiple times. This could for example be fixed by monitoring processes
+and restarting them, if they fail.
 
-Node:
-- kø af opgaver
-- fast eller variabel mængde retteprocesser
-- monitorering af retteprocesser
-- fejlhåndtering ved gentagne crashes
-- kontakter master og siger "Hey, jeg er klar"
-
-
-DSL ideer:
-- required linux packages
-- grading routine/run order
-- I/O (Network-allowed, disk-allowed), default false
-- Name (assignment identifier)
-- Max runtime (some default, some maximum)
-- Max memory (some default, some maximum)
-- Output (default = stdout, kan være fil, max size?)
+\subsection*{Sandboxing}
+As the system should be able to handle several sandboxes, it should be easy to
+extend it with another one. It should also be possible to restrict access to
+specific ressources in the sandbox, eg. disabling disk or network access.
+It should also be possible to limit them in other ways, for example by setting
+a max runtime or max memory usage.
