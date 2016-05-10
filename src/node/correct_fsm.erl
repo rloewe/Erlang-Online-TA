@@ -3,7 +3,7 @@
 -export([start_link/1]).
 -export([start_job/2]).
 -export ([init/1,listen/2,correction/2,finished/2]).
--import (node_server, [/arity]).
+-import (node_server, [finish_assignment_job/3]).
 start_job(Name,{Prog,Args,SessionToken}) ->
     gen_fsm:send_event(Name,{start_assign,{Prog,Args,SessionToken}}).
 
@@ -25,7 +25,7 @@ correction(timeout,{Prog,Args,Node,SessionToken}) ->
 
 finished(timeout,{Res,Node,SessionToken}) ->
     %TODO, API for node for result
-    finish_assignment_job(Node,SessionToken,Res)
+    finish_assignment_job(Node,SessionToken,Res),
     io:format("Result received ~n~p~n",[Res]),
     {next_state,listen,Node}.
 

@@ -16,7 +16,7 @@ start(ConfigFile) ->
         {ok, Config} ->
             Cookie = dict:fetch("Cookie", Config),
             erlang:set_cookie(node(),Cookie),
-            gen_server:start_link({global, master}, ?MODULE, [], []);
+            gen_server:start_link({local, master}, ?MODULE, [], []);
         {error, Msg} ->
             io:format("~p", [Msg])
     end.

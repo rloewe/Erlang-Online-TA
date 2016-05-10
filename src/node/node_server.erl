@@ -52,7 +52,8 @@ handle_call(
     %TODO fix magic constant
     %TODO Name FSM uniquely
     %TODO Dont have a hardcoded fsm name.....
-    if length(CurrentJobs) < 2 ->
+    Size = dict:size(CurrentJobs)
+    if Size < 2 ->
            {AssignmentID, Files, SessionToken} = Assignment,
            Fsm = correct_fsm:start_link({fsm1,node()}),
            correct_fsm:start_job(fsm1,{none,none,SessionToken}),
