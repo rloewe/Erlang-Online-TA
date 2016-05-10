@@ -1,3 +1,4 @@
+erlc start.erl;
 cd lib/;
 erlc *;
 cd ../node;
