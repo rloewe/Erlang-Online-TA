@@ -3,7 +3,7 @@
 -import (master_server, [connect_to/3]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, queue_assignment_job/4]).
+-export([start/1, queue_assignment_job/4,finish_assignment_job/3]).
 
 start(Path) ->
     %TODO add parse config
@@ -22,13 +22,16 @@ start(Path) ->
 queue_assignment_job(Node, AssignmentID, Files, SessionToken) ->
     gen_server:call({?MODULE, Node}, {queue_job, {AssignmentID, Files, SessionToken}}).
 
+finish_assignment_job(Node,SessionToken,Res) ->
+    gen_server:call({?MODULE,Node},{update_job,{SessionToken,Res}}).
+
 init([MasterNode,Specs]) ->
     %master:connect_to(node()),
     case connect_to(node(),Specs,MasterNode) of
         ok ->
             Queue = queue:new(),
             Assignments = dict:new(),
-            CurrentJobs = [],
+            CurrentJobs = dict:new(),
             {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
         A ->
             io:format("~p",[A]),
@@ -47,9 +50,12 @@ handle_call(
  ) ->
     %TODO handle assignment id
     %TODO fix magic constant
+    %TODO Name FSM uniquely
     if length(CurrentJobs) < 2 ->
            {AssignmentID, Files, SessionToken} = Assignment,
-           NewCurrentJobs = [Assignment | CurrentJobs],
+           Fsm = correct_fsm:start_link({SessionToken,node()}),
+           correct_fsm:start_job(SessionToken,{none,none}),
+           NewCurrentJobs = dict:store(SessionToken,{AssignmentID,Files},CurrentJobs),
            io:format("Queue: ~p ~nCurrentJobs: ~p", [Queue, NewCurrentJobs]),
            {reply, started, {Queue, Assignments, NewCurrentJobs, MasterNode}};
        true ->
@@ -57,7 +63,19 @@ handle_call(
            io:format("Queue: ~p ~nCurrentJobs: ~p", [NewQueue, CurrentJobs]),
            {reply, queued, {NewQueue, Assignments, CurrentJobs, MasterNode}}
     end;
-    
+
+
+handle_call(
+  {finish_job,{SessionToken,Res}},
+  _From,
+  {Queue, Assignments, CurrentJobs, MasterNode}) ->
+    %TODO add jobs from queue to running
+    %TODO Handle errorhandling with master communication?
+    %TODO Kill FSM
+    NewCurrentJobs = dict:erase(SessionToken,CurrentJobs),
+    master_server:assignment_job_updated(SessionToken,{finished,Res},MasterNode),
+    {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};    
+
 handle_call(_Message, _From, State) ->
     {reply, error, State}.
 

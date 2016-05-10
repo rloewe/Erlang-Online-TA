@@ -48,8 +48,7 @@ handle_call({add_node,Node,Specs}, _From, {Nodes,Sessions,Assignments}) ->
     case dict:is_key(Node,Nodes) of
         true ->
             %Just adding the case, dont know what to do with it yet
-            NewNodes = Nodes,
-            nothing;
+            NewNodes = Nodes;
         false ->
             case net_kernel:connect_node(Node) of
                 true ->
@@ -76,18 +75,15 @@ handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignme
                     Status = queue_assignment_job(Node,AssignmentID,Files,SessionToken),
                     %TODO some magic with the node
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status},Sessions),
-                    Reply = {ok,{SessionToken,Status}};
+                    {reply,{ok,{SessionToken,Status}},{Nodes,NewSessions,Assignments}};
                 true ->
                     io:format("Could not start session, no nodes available"),
-                    NewSessions = Sessions,
-                    Reply = {error,no_nodes}
+                    {reply,{error,no_nodes},{Nodes,Sessions,Assignments}}
             end;
         false ->
             io:format("no assignment id matching the given argument"),
-            NewSessions = Sessions,
-            Reply = {error,no_assignment_id}
-    end, 
-    {reply, Reply, {Nodes,NewSessions,Assignments}};
+            {reply,{error,no_assignment_id},{Nodes,Sessions,Assignments}}
+    end;
 
 
 handle_call({assignment_status,SessionToken}, _From, {Nodes,Sessions,Assignments}) ->
@@ -95,11 +91,10 @@ handle_call({assignment_status,SessionToken}, _From, {Nodes,Sessions,Assignments
         true ->
             %List is only 1 elem long as long as we ensure unique IDs
             [{_,Status}] = dict:fetch(SessionToken,Sessions),
-            Reply = {ok,Status};
+            {reply,{ok,Status},{Nodes,Sessions,Assignments}};
         false ->
-            Reply = {error,no_session}
-    end,
-    {reply, Reply, {Nodes,Sessions,Assignments}};
+            {reply, {error,no_session}, {Nodes,Sessions,Assignments}}
+    end;
 
 
 handle_call(
@@ -109,13 +104,11 @@ handle_call(
     AssignmentID = parse_assignment(AssignmentConfig),
     case dict:is_key(AssignmentID,Assignments) of 
         true ->
-            NewAssignments = Assignments,
-            Reply = {error,assignment_exist};
+            {reply,{error,assignment_exist},{Nodes,Sessions,Assignments}};
         false ->
             NewAssignments = dict:store(AssignmentID,none,Assignments),
-            Reply = ok
-    end,
-    {reply, Reply, {Nodes,Sessions,NewAssignments}};
+            {reply, ok, {Nodes,Sessions,NewAssignments}}
+    end;
 
 
 handle_call({update_job,SessionToken,NewStatus}, _From, {Nodes,Sessions,Assignments}) ->
@@ -124,17 +117,15 @@ handle_call({update_job,SessionToken,NewStatus}, _From, {Nodes,Sessions,Assignme
             case NewStatus of 
                 running ->
                     NewSessions = dict:store(SessionToken,NewStatus,Sessions),
-                    Reply = {ok,updated};
+                    {reply, {ok,updated}, {Nodes,NewSessions,Assignments}};
                 {finished,ReturnVal} ->
                     %TODO magic with files and return call to end user
                     NewSessions = dict:erase(SessionToken,Sessions),
-                    Reply = {ok,finished}
+                    {reply, {ok,finished}, {Nodes,NewSessions,Assignments}}
             end;
         false ->
-            Reply = {error,nosess},
-            NewSessions = Sessions
-    end,
-    {reply, Reply, {Nodes,Sessions,Assignments}};
+            {reply, {error,nosess}, {Nodes,Sessions,Assignments}}
+    end;
 
 
 handle_call(_Message, _From, State) ->
