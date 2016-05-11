@@ -4,11 +4,11 @@
 -export([start_job/2]).
 -export ([init/1,listen/2,correction/2,finished/2]).
 -import (node_server, [finish_assignment_job/3]).
-start_job(Name,{Prog,Args,SessionToken}) ->
-    gen_fsm:send_event(Name,{start_assign,{Prog,Args,SessionToken}}).
+start_job(PID,{Prog,Args,SessionToken}) ->
+    gen_fsm:send_event(PID,{start_assign,{Prog,Args,SessionToken}}).
 
-start_link({Name,Node}) ->
-    gen_fsm:start_link({local, Name}, ?MODULE, [Node], []).
+start_link({Node}) ->
+    gen_fsm:start_link(?MODULE, [Node], []).
 
 init([Node]) ->
     {ok, listen, Node}.
