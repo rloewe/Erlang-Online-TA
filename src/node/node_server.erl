@@ -27,11 +27,12 @@ finish_assignment_job(Node,SessionToken,Res) ->
 
 init([MasterNode,Specs]) ->
     %master:connect_to(node()),
-    case connect_to(node(),Specs,MasterNode) of
+    c connect_to(node(),Specs,MasterNode) of
         ok ->
             Queue = queue:new(),
             Assignments = dict:new(),
             CurrentJobs = dict:new(),
+            %Supervisor = supervisor:
             {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
         A ->
             io:format("~p",[A]),
@@ -50,7 +51,7 @@ handle_call(
  ) ->
     %TODO handle assignment id
     %TODO fix magic constant
-    Size = dict:size(CurrentJobs)
+    Size = dict:size(CurrentJobs),
     if Size < 2 ->
            {AssignmentID, Files, SessionToken} = Assignment,
            FsmPID = correct_fsm:start_link({node()}),

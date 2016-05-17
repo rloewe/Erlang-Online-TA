@@ -8,17 +8,24 @@
 -export([start/1,connect_to/3,get_assignment_status/2,send_assignment/3,
         add_assignment/2,assignment_job_updated/3]).
 
+% @version 1.0.0
+
+
 connect_to(Node,Specs,MasterNode) ->
     gen_server:call({master,MasterNode},{add_node,Node,Specs}).
 
+
+
 start(ConfigFile) ->
+    %% @TODO change ConfigFile variable name
     case parse(ConfigFile, true) of
         {ok, Config} ->
             Cookie = dict:fetch("Cookie", Config),
             erlang:set_cookie(node(),Cookie),
             gen_server:start_link({local, master}, ?MODULE, [], []);
         {error, Msg} ->
-            io:format("~p", [Msg])
+            io:format("~p", [Msg]),
+            {error,Msg}
     end.
 
 get_assignment_status(SessionToken,MasterNode) ->
@@ -42,6 +49,7 @@ init([]) ->
 
 handle_cast(_Message, State) ->
     {noreply, State}.
+
 
 
 handle_call({add_node,Node,Specs}, _From, {Nodes,Sessions,Assignments}) ->
