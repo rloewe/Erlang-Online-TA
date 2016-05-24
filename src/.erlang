@@ -1,1 +1,1 @@
-code:add_paths([".", "./lib","./master","./node","./tests"]).
+code:add_paths([".", "./lib","./master","./node","./tests","./lib/erlexec/include"]).

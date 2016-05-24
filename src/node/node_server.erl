@@ -5,10 +5,14 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1, queue_assignment_job/4,finish_assignment_job/3]).
 
+
+% API call to start the node server, takes a path to a node server config file as argument
+% Returns {ok,PID} or {error,Message}. 
 start(Path) ->
     %TODO add parse config
     case parse(Path, false) of
         {ok, Config} ->
+            exec:start([]),
             Cookie = dict:fetch("Cookie", Config),
             MasterNode = dict:fetch("Master", Config),
             Specs = none,
@@ -16,18 +20,24 @@ start(Path) ->
             net_kernel:connect_node(MasterNode),
             gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode,Specs], []);
         {error, Msg} ->
-            io:format("~p", [Msg])
+            io:format("~p", [Msg]),
+            {error,Msg}
     end.
 
+%API call for queueing a new job on a node server, should be called from the 
+%master server. Returns started or queued depending on if the job is started.
 queue_assignment_job(Node, AssignmentID, Files, SessionToken) ->
     gen_server:call({?MODULE, Node}, {queue_job, {AssignmentID, Files, SessionToken}}).
 
+%API call for finishing an assignment on a node server, should be called from the 
+%FSM assosiated to the job. Returns ok
 finish_assignment_job(Node,SessionToken,Res) ->
     gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
 
+
 init([MasterNode,Specs]) ->
     %master:connect_to(node()),
-    c connect_to(node(),Specs,MasterNode) of
+    case connect_to(node(),Specs,MasterNode) of
         ok ->
             Queue = queue:new(),
             Assignments = dict:new(),
