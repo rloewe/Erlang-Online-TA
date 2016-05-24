@@ -5,7 +5,7 @@
 -import (node_server, [queue_assignment_job/4]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1,connect_to/3,get_assignment_status/2,send_assignment/3,
+-export([start/1,connect_to/3,get_handin_status/2,send_handin/3,
         add_assignment/2,assignment_job_updated/3]).
 
 % @version 1.0.0
@@ -28,12 +28,12 @@ start(ConfigFile) ->
             {error,Msg}
     end.
 
-get_assignment_status(SessionToken,MasterNode) ->
-    gen_server:call({master,MasterNode},{assignment_status,SessionToken}).
+get_handin_status(SessionToken,MasterNode) ->
+    gen_server:call({master,MasterNode},{handin_status,SessionToken}).
 
-send_assignment(AssignmentID,Files,MasterNode) ->
+send_handin(AssignmentID,Files,MasterNode) ->
     %Do some magic to deal with files
-    gen_server:call({master,MasterNode},{send_assignment,AssignmentID,Files}).
+    gen_server:call({master,MasterNode},{send_handin,AssignmentID,Files}).
 
 add_assignment(AssignmentConfig,MasterNode) ->
     gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig}).
@@ -70,7 +70,8 @@ handle_call({add_node,Node,Specs}, _From, {Nodes,Sessions,Assignments}) ->
         end,
     {reply, ok, {NewNodes,Sessions,Assignments}};
 
-handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignments}) ->
+handle_call({send_handin,AssignmentID,Files},_From, {Nodes,Sessions,Assignments}) ->
+    io:format("~p", [Files]),
     case dict:is_key(AssignmentID,Assignments) of
         true ->
             %Random distribution of work over nodes
@@ -94,7 +95,7 @@ handle_call({send_assignment,AssignmentID,Files},_From, {Nodes,Sessions,Assignme
     end;
 
 
-handle_call({assignment_status,SessionToken}, _From, {Nodes,Sessions,Assignments}) ->
+handle_call({handin_status,SessionToken}, _From, {Nodes,Sessions,Assignments}) ->
     case dict:is_key(SessionToken,Sessions) of 
         true ->
             %List is only 1 elem long as long as we ensure unique IDs

@@ -1,0 +1,9 @@
+[{release,"web_release","1","7.3",
+          [{stdlib,"2.8","./lib/stdlib-2.8"},
+           {kernel,"4.2","./lib/kernel-4.2"},
+           {crypto,"3.6.3","./lib/crypto-3.6.3"},
+           {cowlib,"1.0.2","./lib/cowlib-1.0.2"},
+           {ranch,"1.2.1","./lib/ranch-1.2.1"},
+           {cowboy,"1.0.4","./lib/cowboy-1.0.4"},
+           {web,"0.0.1","./lib/web-0.0.1"}],
+          permanent}].
