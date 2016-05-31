@@ -81,7 +81,7 @@ handle_call({send_handin,AssignmentID,Files},_From, {Nodes,Sessions,Assignments}
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    Status = queue_assignment_job(Node,AssignmentID,Files,SessionToken),
+                    Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
                     %TODO some magic with the node
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status},Sessions),
                     {reply,{ok,{SessionToken,Status}},{Nodes,NewSessions,Assignments}};

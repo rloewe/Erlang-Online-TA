@@ -96,7 +96,7 @@ handle_call(
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     %TODO add some functionality
     NewAssignments = dict:store(AssignmentID,none,Assignments),
-    {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}}.
+    {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
 
 
 handle_call(_Message, _From, State) ->

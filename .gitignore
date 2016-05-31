@@ -2,6 +2,7 @@
 deps
 *.o
 *.beam
+!src/lib/erlexec/*.beam
 *.plt
 erl_crash.dump
 ebin
