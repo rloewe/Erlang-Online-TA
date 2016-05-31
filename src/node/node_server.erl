@@ -3,7 +3,7 @@
 -import (master_server, [connect_to/3]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, queue_assignment_job/4,finish_assignment_job/3]).
+-export([start/1, queue_handin_job/4,finish_handin_job/3]).
 
 
 % API call to start the node server, takes a path to a node server config file as argument
@@ -26,13 +26,17 @@ start(Path) ->
 
 %API call for queueing a new job on a node server, should be called from the 
 %master server. Returns started or queued depending on if the job is started.
-queue_assignment_job(Node, AssignmentID, Files, SessionToken) ->
+queue_handin_job(Node, AssignmentID, Files, SessionToken) ->
     gen_server:call({?MODULE, Node}, {queue_job, {AssignmentID, Files, SessionToken}}).
 
 %API call for finishing an assignment on a node server, should be called from the 
 %FSM assosiated to the job. Returns ok
-finish_assignment_job(Node,SessionToken,Res) ->
+finish_handin_job(Node,SessionToken,Res) ->
     gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
+
+%API call for adding an assignment to the node server
+add_assignment(Node,AssignmentID) ->
+    gen_server:call({?MODULE,Node},{add_assignment,AssignmentID}).
 
 
 init([MasterNode,Specs]) ->
@@ -84,8 +88,16 @@ handle_call(
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
     NewCurrentJobs = dict:erase(SessionToken,CurrentJobs),
-    master_server:assignment_job_updated(SessionToken,{finished,Res},MasterNode),
+    master_server:update_handin_job(SessionToken,{finished,Res},MasterNode),
     {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};    
+
+handle_call(
+  {add_assignment,AssignmentID}, _From, 
+  {Queue, Assignments, CurrentJobs, MasterNode}) ->
+    %TODO add some functionality
+    NewAssignments = dict:store(AssignmentID,none,Assignments),
+    {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}}.
+
 
 handle_call(_Message, _From, State) ->
     {reply, error, State}.

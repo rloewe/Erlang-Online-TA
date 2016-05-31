@@ -2,11 +2,11 @@
 -behaviour(gen_server).
 
 -import (assignment_parser, [parse_assignment/1]).
--import (node_server, [queue_assignment_job/4]).
+-import (node_server, [queue_handin_job/4]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/3,get_handin_status/2,send_handin/3,
-        add_assignment/2,assignment_job_updated/3]).
+        add_assignment/2,update_handin_job/3]).
 
 % @version 1.0.0
 
@@ -38,7 +38,7 @@ send_handin(AssignmentID,Files,MasterNode) ->
 add_assignment(AssignmentConfig,MasterNode) ->
     gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig}).
 
-assignment_job_updated(SessionToken,NewStatus,MasterNode) ->
+update_handin_job(SessionToken,NewStatus,MasterNode) ->
     gen_server:call({master,MasterNode},{update_job,SessionToken,NewStatus}).
 
 init([]) ->
@@ -110,12 +110,18 @@ handle_call(
   {add_assignment,AssignmentConfig},
   _From, 
   {Nodes,Sessions,Assignments}) ->
+    %TODO Fix parse assignment
+    %TODO Fix sending files in process of its own
+    %{AssignmentID, RunModule, Files} = parse_assignment(AssignmentConfig),
     AssignmentID = parse_assignment(AssignmentConfig),
     case dict:is_key(AssignmentID,Assignments) of 
         true ->
             {reply,{error,assignment_exist},{Nodes,Sessions,Assignments}};
         false ->
             NewAssignments = dict:store(AssignmentID,none,Assignments),
+            %TODO send assignment files etc
+            UpdateFun = fun(Node) -> node_server:add_assignment(Node,AssignmentID) end,
+            lists:map(UpdateFun,nodes()),
             {reply, ok, {Nodes,Sessions,NewAssignments}}
     end;
 
