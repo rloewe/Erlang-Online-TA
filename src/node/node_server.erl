@@ -3,7 +3,7 @@
 -import (master_server, [connect_to/3]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/2]).
+-export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/4]).
 
 
 % API call to start the node server, takes a path to a node server config file as argument
@@ -35,8 +35,8 @@ finish_handin_job(Node,SessionToken,Res) ->
     gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
 
 %API call for adding an assignment to the node server
-add_assignment(Node,{AssignmentID,Module}) ->
-    gen_server:call({?MODULE,Node},{add_assignment,AssignmentID,Module}).
+add_assignment(Node,AssignmentID,ModuleName,ModuleBinary) ->
+    gen_server:call({?MODULE,Node},{add_assignment,AssignmentID,ModuleName,ModuleBinary}).
 
 
 init([MasterNode,Specs]) ->
@@ -92,11 +92,14 @@ handle_call(
     {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};    
 
 handle_call(
-  {add_assignment,AssignmentID,Module}, _From, 
+  {add_assignment,AssignmentID,ModuleName,ModuleBinary}, _From, 
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     %TODO add some functionality
-    Module:hello(),
-    NewAssignments = dict:store(AssignmentID,Module,Assignments),
+    %TODO Move loading out of this function, here for testing purposes
+    %TODO Remove code loadin, its just for test
+    erlang:load_module(ModuleName,ModuleBinary),
+    ModuleName:hello(),
+    NewAssignments = dict:store(AssignmentID,{ModuleName,ModuleBinary},Assignments),
     {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
 
 
