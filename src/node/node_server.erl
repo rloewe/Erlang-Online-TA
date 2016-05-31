@@ -35,8 +35,8 @@ finish_handin_job(Node,SessionToken,Res) ->
     gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
 
 %API call for adding an assignment to the node server
-add_assignment(Node,AssignmentID) ->
-    gen_server:call({?MODULE,Node},{add_assignment,AssignmentID}).
+add_assignment(Node,{AssignmentID,Module}) ->
+    gen_server:call({?MODULE,Node},{add_assignment,AssignmentID,Module}).
 
 
 init([MasterNode,Specs]) ->
@@ -92,11 +92,11 @@ handle_call(
     {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};    
 
 handle_call(
-  {add_assignment,AssignmentID}, _From, 
+  {add_assignment,AssignmentID,Module}, _From, 
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     %TODO add some functionality
-    io:format("Received assignment ~n"),
-    NewAssignments = dict:store(AssignmentID,none,Assignments),
+    Module:hello(),
+    NewAssignments = dict:store(AssignmentID,Module,Assignments),
     {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
 
 

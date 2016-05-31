@@ -113,14 +113,14 @@ handle_call(
     %TODO Fix parse assignment
     %TODO Fix sending files in process of its own
     %{AssignmentID, RunModule, Files} = parse_assignment(AssignmentConfig),
-    AssignmentID = parse_assignment(AssignmentConfig),
+    {AssignmentID,Module} = parse_assignment(AssignmentConfig),
     case dict:is_key(AssignmentID,Assignments) of 
         true ->
             {reply,{error,assignment_exist},{Nodes,Sessions,Assignments}};
         false ->
             NewAssignments = dict:store(AssignmentID,none,Assignments),
             %TODO send assignment files etc
-            UpdateFun = fun(Node) -> node_server:add_assignment(Node,AssignmentID) end,
+            UpdateFun = fun(Node) -> node_server:add_assignment(Node,{AssignmentID,Module}) end,
             lists:map(UpdateFun,nodes()),
             {reply, ok, {Nodes,Sessions,NewAssignments}}
     end;
