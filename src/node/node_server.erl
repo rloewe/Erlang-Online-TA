@@ -3,7 +3,7 @@
 -import (master_server, [connect_to/3]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, queue_handin_job/4,finish_handin_job/3]).
+-export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/2]).
 
 
 % API call to start the node server, takes a path to a node server config file as argument
@@ -95,6 +95,7 @@ handle_call(
   {add_assignment,AssignmentID}, _From, 
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     %TODO add some functionality
+    io:format("Received assignment ~n"),
     NewAssignments = dict:store(AssignmentID,none,Assignments),
     {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
 
