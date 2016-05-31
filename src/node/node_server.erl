@@ -12,7 +12,7 @@ start(Path) ->
     %TODO add parse config
     case parse(Path, false) of
         {ok, Config} ->
-            exec:start([]),
+            %exec:start([]),
             Cookie = dict:fetch("Cookie", Config),
             MasterNode = dict:fetch("Master", Config),
             Specs = none,
