@@ -1,6 +1,6 @@
 -module(assignment_parser).
 
--export ([parse_assignment/1,parse/1]).
+-export ([parse_assignment/1,parse/1,to_type/1]).
 
 %Parser for assignment parser, a valid config file seperates each entry to be parsed
 %seperated by newlines, each entry follows: Entry = value, in the case of entries
@@ -39,17 +39,17 @@ populate_dict([Line | Lines], Dict) ->
         "runorder" ->
             Values = string:tokens(Value, ","),
             Runorder = parse_runorder_files(Values, []), 
-            io:format("~p ~n",[Runorder]),
             NewDict = dict:store("runorder",Runorder,Dict),
             populate_dict(Lines,NewDict);
         "required_libs" ->
             Values = string:tokens(Value, ", "),
-            io:format("~p ~n",[Values]),
             NewDict = dict:store("required_libs",Values,Dict),
             populate_dict(Lines,NewDict);
+        "module" ->
+            NewDict = dict:store("module",list_to_atom(Value),Dict),
+            populate_dict(Lines,NewDict);
         _ ->
-            AtomValue = list_to_atom(Value),
-            NewDict = dict:store(Key, AtomValue, Dict),
+            NewDict = dict:store(Key, Value, Dict),
             populate_dict(Lines, NewDict)
     end.
 
@@ -68,7 +68,7 @@ add_defaults(Dict) ->
     case file:read_file("./default.conf") of
         {ok, Binary} ->
             Content = binary_to_list(Binary),
-            Lines = string:tokens(Content, "\n="),
+            Lines = string:tokens(Content, "\n= "),
             add_default_values(Lines,Dict);
          Error -> Error
     end.
@@ -76,10 +76,31 @@ add_defaults(Dict) ->
 add_default_values([],Dict) ->
     Dict;
 add_default_values([Entry,Value | Rest],Dict) ->
+    Fun = to_type(Entry),
     case dict:is_key(Entry,Dict) of
         true ->
-            add_default_values(Rest,Dict);
+            Elem = dict:fetch(Entry,Dict),
+            io:format("~p\n",[Elem]),
+            NewDict = dict:store(Entry,Fun(Elem),Dict),
+            add_default_values(Rest,NewDict);
         false ->
-            NewDict = dict:store(Entry,Value,Dict),
+            NewDict = dict:store(Entry,Fun(Value),Dict),
             add_default_values(Rest,NewDict)
     end.
+
+to_type(Entry) ->
+    case Entry of
+        "module" ->
+            fun(Elem) -> io:format("hi"),list_to_atom(Elem) end;
+        "maxmem" ->
+            fun(Elem) -> {E,_} = string:to_integer(Elem), E end;
+        "maxtime" ->
+            fun(Elem) -> {E,_} = string:to_integer(Elem), E end;
+        "network" ->
+            fun(Elem) -> list_to_atom(Elem) end;
+        "io" ->
+            fun(Elem) -> list_to_atom(Elem) end;
+        _ ->
+            fun(Elem) -> Elem end
+    end.
+
