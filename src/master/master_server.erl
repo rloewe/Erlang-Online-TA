@@ -1,12 +1,11 @@
 -module(master_server).
 -behaviour(gen_server).
 
--import (assignment_parser, [parse_assignment/1]).
 -import (node_server, [queue_handin_job/4]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/3,get_handin_status/2,send_handin/3,
-        add_assignment/2,update_handin_job/3,add_module/3, register_socket/2, deregister_socket/2]).
+        add_assignment/3,update_handin_job/3,add_module/3, register_socket/2, deregister_socket/2]).
 
 % @version 1.0.0
 
@@ -33,8 +32,8 @@ send_handin(AssignmentID,Files,MasterNode) ->
     %Do some magic to deal with files
     gen_server:call({master,MasterNode},{send_handin,AssignmentID,Files}).
 
-add_assignment(AssignmentConfig,MasterNode) ->
-    gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig}).
+add_assignment(AssignmentConfig,MasterNode,Files) ->
+    gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig,Files}).
 
 update_handin_job(SessionToken,NewStatus,MasterNode) ->
     gen_server:call({master,MasterNode},{update_job,SessionToken,NewStatus}).
@@ -116,27 +115,25 @@ handle_call({handin_status,SessionToken}, _From, State) ->
     end;
 
 
-handle_call({add_assignment,AssignmentConfig}, _From, State) ->
-    %TODO Fix parse assignment
+handle_call({add_assignment,AssignmentConfigPath,Files}, _From, State) ->
     %TODO Fix sending files in process of its own
-    %{AssignmentID, RunModule, Files} = parse_assignment(AssignmentConfig),
-    {AssignmentID,Module} = parse_assignment(AssignmentConfig),
-    case dict:is_key(AssignmentID, State#masterState.assignments) of 
-        true ->
-            {reply,{error,assignment_exist},State};
-        false ->
-            case dict:find(Module,State#masterState.modules) of
-                {ok, ModuleBinary} ->
-                    NewAssignments = dict:store(AssignmentID,none,State#masterState.assignments),
-                    %TODO send assignment files etc
-                    UpdateFun = fun(Node) -> node_server:add_assignment(Node,{AssignmentID,Module,ModuleBinary}) end,
+    case assignment_parser:parse(AssignmentConfigPath) of
+        {ok,Dict} ->
+            case check_assignment_parameters(Dict,State) of
+                ok ->
+                    %TODO Store files on server?
+                    AssignmentID = dict:fetch("assignmentid",Dict),
+                    NewAssignments = dict:store(AssignmentID,State#masterState.assignments),
+                    ModuleBinary = dict:fetch(dict:fetch("module",Dict),State#masterState.modules),
+                    UpdateFun = fun(Node) -> 
+                        node_server:add_assignment(Node,AssignmentID,Dict,ModuleBinary,Files) end,  
                     lists:map(UpdateFun,nodes()),
-                    Reply = ok;
-                error ->
-                    NewAssignments = State#masterState.assignments,
-                    Reply = {error,nomodule}
-                end,
-            {reply, Reply, State#masterState{assignments = NewAssignments}}
+                    {reply,ok,State#masterState{assignments=NewAssignments}};
+                {error,Err} ->
+                    {reply, {error,Err},State}
+            end;
+        {error, Err} ->
+            {reply, {error,Err}, State}
     end;
 
 handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
@@ -182,3 +179,18 @@ handle_call(_Message, _From, State) ->
 handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
+
+check_assignment_parameters(AssignmentDict,State) ->
+    Modules = State#masterState.modules,
+    Assignments = State#masterState.assignments,
+    case dict:is_key(dict:fetch("assignmentid",AssignmentDict)) of
+        true ->
+            {error,noassignid};
+        false ->
+            case dict:is_key(dict:fetch("module",AssignmentDict),Modules) of
+                true ->
+                    ok;
+                false ->
+                    {error,nomodule}
+        end
+    end.

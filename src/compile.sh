@@ -1,7 +1,7 @@
 erlc start.erl;
 cd lib/;
-erlc *;
+erlc *.erl;
 cd ../node;
-erlc *;
+erlc *.erl;
 cd ../master;
-erlc *;
+erlc *.erl;
