@@ -6,15 +6,13 @@
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/3,get_handin_status/2,send_handin/3,
-        add_assignment/2,update_handin_job/3,add_module/3]).
+        add_assignment/2,update_handin_job/3,add_module/3, register_socket/2, deregister_socket/2]).
 
 % @version 1.0.0
 
 
 connect_to(Node,Specs,MasterNode) ->
     gen_server:call({master,MasterNode},{add_node,Node,Specs}).
-
-
 
 start(ConfigFile) ->
     %% @TODO change ConfigFile variable name
@@ -43,42 +41,48 @@ update_handin_job(SessionToken,NewStatus,MasterNode) ->
 
 add_module(ModuleName,Binary,MasterNode) ->
     gen_server:call({master,MasterNode},{add_module,ModuleName,Binary}).
+register_socket(Pid, MasterNode) ->
+    gen_server:call({master, MasterNode},{register_socket, Pid}).
+
+deregister_socket(Pid, MasterNode) ->
+    gen_server:call({master, MasterNode},{deregister_socket, Pid}).
+
+-record(masterState, {nodes, sessions, assignments, modules, userSockets}).
 
 init([]) ->
-    Nodes = dict:new(),
-    Session = dict:new(),
-    Assignments = dict:new(),
-    Modules = dict:new(),
-    {ok, {Nodes,Session,Assignments,Modules}}.
+    {ok, #masterState{
+            nodes = dict:new(),
+            sessions = dict:new(),
+            assignments = dict:new(),
+            modules = dict:new(),
+            userSockets = []
+           }
+    }.
 
 handle_cast(_Message, State) ->
     {noreply, State}.
 
 
-
-handle_call({add_node,Node,Specs}, _From, {Nodes,Sessions,Assignments,Modules}) ->
-    case dict:is_key(Node,Nodes) of
+handle_call({add_node,Node,Specs}, _From, State) ->
+    case dict:is_key(Node,State#masterState.nodes) of
         true ->
             %Just adding the case, dont know what to do with it yet
-            NewNodes = Nodes;
+            NewNodes = State#masterState.nodes;
         false ->
             case net_kernel:connect_node(Node) of
                 true ->
-                    NewNodes = dict:store(Node,Specs,Nodes);
+                    NewNodes = dict:store(Node,Specs,State#masterState.nodes);
                 false ->
-                    NewNodes = Nodes;
+                    NewNodes = State#masterState.nodes;
                 ignored ->
                     %Is a case of connect node, added with dummy for now
-                    NewNodes = Nodes
+                    NewNodes = State#masterState.nodes
             end
         end,
-    {reply, ok, {NewNodes,Sessions,Assignments,Modules}};
+    {reply, ok, State#masterState{nodes=NewNodes}};
 
-handle_call(
-  {send_handin,AssignmentID,Files},
-  _From, {Nodes,Sessions,Assignments,Modules}) ->
-    io:format("~p", [Files]),
-    case dict:is_key(AssignmentID,Assignments) of
+handle_call({send_handin,AssignmentID,Files},_From, State) ->
+    case dict:is_key(AssignmentID,State#masterState.assignments) of
         true ->
             %Random distribution of work over nodes
             NumberOfNodes = length(nodes()),
@@ -89,85 +93,90 @@ handle_call(
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
                     Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
                     %TODO some magic with the node
-                    NewSessions = dict:store(SessionToken,{AssignmentID,Status},Sessions),
-                    {reply,{ok,{SessionToken,Status}},{Nodes,NewSessions,Assignments,Modules}};
+                    NewSessions = dict:store(SessionToken,{AssignmentID,Status},State#masterState.sessions),
+                    {reply,{ok,{SessionToken,Status}},State#masterState{sessions=NewSessions}};
                 true ->
                     io:format("Could not start session, no nodes available"),
-                    {reply,{error,no_nodes},{Nodes,Sessions,Assignments,Modules}}
+                    {reply,{error,no_nodes},State}
             end;
         false ->
             io:format("no assignment id matching the given argument"),
-            {reply,{error,no_assignment_id},{Nodes,Sessions,Assignments,Modules}}
+            {reply,{error,no_assignment_id},State}
     end;
 
 
-handle_call(
-  {handin_status,SessionToken}, 
-  _From, {Nodes,Sessions,Assignments,Modules}) ->
-    case dict:is_key(SessionToken,Sessions) of 
+handle_call({handin_status,SessionToken}, _From, State) ->
+    case dict:is_key(SessionToken,State#masterState.sessions) of
         true ->
             %List is only 1 elem long as long as we ensure unique IDs
-            [{_,Status}] = dict:fetch(SessionToken,Sessions),
-            {reply,{ok,Status},{Nodes,Sessions,Assignments,Modules}};
+            [{_,Status}] = dict:fetch(SessionToken, State#masterState.sessions),
+            {reply,{ok,Status}, State};
         false ->
-            {reply, {error,no_session}, {Nodes,Sessions,Assignments,Modules}}
+            {reply, {error,no_session}, State}
     end;
 
 
-handle_call(
-  {add_assignment,AssignmentConfig},
-  _From, 
-  {Nodes,Sessions,Assignments,Modules}) ->
+handle_call({add_assignment,AssignmentConfig}, _From, State) ->
     %TODO Fix parse assignment
     %TODO Fix sending files in process of its own
     %{AssignmentID, RunModule, Files} = parse_assignment(AssignmentConfig),
     {AssignmentID,Module} = parse_assignment(AssignmentConfig),
-    case dict:is_key(AssignmentID,Assignments) of 
+    case dict:is_key(AssignmentID, State#masterState.assignments) of 
         true ->
-            {reply,{error,assignment_exist},{Nodes,Sessions,Assignments,Modules}};
+            {reply,{error,assignment_exist},State};
         false ->
-            case dict:find(Module,Modules) of
+            case dict:find(Module,State#masterState.modules) of
                 {ok, ModuleBinary} ->
-                    NewAssignments = dict:store(AssignmentID,none,Assignments),
+                    NewAssignments = dict:store(AssignmentID,none,State#masterState.assignments),
                     %TODO send assignment files etc
                     UpdateFun = fun(Node) -> node_server:add_assignment(Node,{AssignmentID,Module,ModuleBinary}) end,
                     lists:map(UpdateFun,nodes()),
                     Reply = ok;
                 error ->
-                    NewAssignments = Assignments,
+                    NewAssignments = State#masterState.assignments,
                     Reply = {error,nomodule}
                 end,
-            {reply, Reply, {Nodes,Sessions,NewAssignments,Modules}}
+            {reply, Reply, State#masterState{assignments = NewAssignments}}
     end;
 
-
-handle_call(
-  {update_job,SessionToken,NewStatus}, 
-  _From, {Nodes,Sessions,Assignments,Modules}) ->
-    case dict:is_key(SessionToken,Sessions) of
+handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
+    lists:map(fun(Pid) -> Pid ! {SessionToken, NewStatus} end, State#masterState.userSockets),
+    case dict:is_key(SessionToken,State#masterState.sessions) of
         true ->
-            case NewStatus of 
+            case NewStatus of
                 running ->
-                    NewSessions = dict:store(SessionToken,NewStatus,Sessions),
-                    {reply, {ok,updated}, {Nodes,NewSessions,Assignments,Modules}};
+                    NewSessions = dict:store(SessionToken,NewStatus,State#masterState.sessions),
+                    {reply, {ok,updated}, State#masterState{sessions=NewSessions}};
                 {finished,ReturnVal} ->
                     %TODO magic with files and return call to end user
                     io:format("Master server job finished ~p \n",[ReturnVal]),
-                    NewSessions = dict:erase(SessionToken,Sessions),
-                    {reply, {ok,finished}, {Nodes,NewSessions,Assignments,Modules}}
+                    NewSessions = dict:erase(SessionToken,State#masterState.sessions),
+                    {reply, {ok,finished}, State#masterState{sessions=NewSessions}}
             end;
         false ->
-            {reply, {error,nosess}, {Nodes,Sessions,Assignments,Modules}}
+            {reply, {error,nosess}, State}
     end;
 
+handle_call({register_socket, Pid}, _From, State) ->
+    io:format("~p", [Pid]),
+    {reply, ok, State#masterState{userSockets = [Pid | State#masterState.userSockets]}};
 
-handle_call(
-  {add_module,ModuleName,Binary}, 
-  _From, {Nodes,Sessions,Assignments,Modules}) ->
-    NewModules = dict:store(ModuleName,Binary,Modules),
-    {reply, ok, {Nodes,Sessions,Assignments,NewModules}};
+handle_call({deregister_socket, Pid}, _From, State) ->
+    io:format("~p", [Pid]),
+    {reply, ok, State#masterState{userSockets = lists:subtract(State#masterState.userSockets, [Pid])}};
+
+handle_call({broadcast, Msg}, _From, State) ->
+    io:format("~p", [State#masterState.userSockets]),
+    lists:map(fun(Pid) -> Pid ! Msg end, State#masterState.userSockets),
+    {reply, ok, State};
+
+
+handle_call({add_module,ModuleName,Binary}, _From, State) ->
+    NewModules = dict:store(ModuleName,Binary,State#masterState.modules),
+    {reply, ok, State#masterState{modules = NewModules}};
 
 handle_call(_Message, _From, State) ->
+    io:format("Got error"),
     {reply, error, State}.
 
 handle_info(_Message, State) -> {noreply, State}.
