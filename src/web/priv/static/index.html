@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:8080/socket");
+            socket.onopen = function (e) {
+                document.body.appendChild(document.createTextNode("Socket open"));
+            }
+            socket.onmessage = function(e) {
+                document.body.appendChild(document.createTextNode(e.data));
+            };
+        </script>
+    </head>
+    <body>
+        Send Handin
+        <form action="/handin" method="POST" enctype="multipart/form-data">
+            <input type="text" name="id" /> <input type="file" name="files" />
+            <input type="submit" />
+        </form>
+    </body>
+</html>

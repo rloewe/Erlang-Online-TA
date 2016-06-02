@@ -9,8 +9,11 @@ start(_Type, _Args) ->
         {
          '_',
          [
-          {"/", hello_handler, []},
-          {"/form", form_handler, []}
+          {"/", cowboy_static, {priv_file, web, "static/index.html"}},
+          {"/handin", handin_handler, []},
+          {"/addAssignment", assignment_handler, []},
+          {"/socket", socket_handler, []}
+
          ]
         }
     ]),
