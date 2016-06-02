@@ -156,6 +156,7 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
 
 handle_call({register_socket, Pid}, _From, State) ->
     io:format("~p", [Pid]),
+    Pid ! {hello, State#masterState.assignments},
     {reply, ok, State#masterState{userSockets = [Pid | State#masterState.userSockets]}};
 
 handle_call({deregister_socket, Pid}, _From, State) ->
