@@ -95,10 +95,15 @@ handle_call(
   {add_assignment,AssignmentID,AssignmentDict,ModuleBinary,Files}, _From, 
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     %TODO add some functionality
-    %TODO Move loading out of this function, here for testing purposes
-    %TODO Remove code loadin, its just for test
-    NewAssignments = dict:store(AssignmentID,{AssignmentDict,ModuleBinary},Assignments),
-    {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
+    Path = "./AssignmentFiles/"++AssignmentID ++ "/",
+    case file:make_dir(Path) of
+      Pat when Pat =:= ok; Pat =:= eexist ->
+          save_files(Files,Path),
+          NewAssignments = dict:store(AssignmentID,{AssignmentDict,ModuleBinary},Assignments),
+          {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
+      E -> 
+        {reply, {error,E},{Queue,Assignments,CurrentJobs,MasterNode}}
+    end;
 
 
 handle_call(_Message, _From, State) ->
@@ -107,3 +112,11 @@ handle_call(_Message, _From, State) ->
 handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
+
+
+
+save_files([],_) ->
+  ok;
+save_files([{FileName,File} | Rest ],Path) ->
+  file:write_file(Path++FileName,File),
+  save_files(Rest,Path).
