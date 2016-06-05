@@ -65,7 +65,7 @@ handle_call(
  ) ->
     %TODO handle assignment id
     %TODO fix magic constant
-    
+
     Size = dict:size(CurrentJobs),
     if Size < 2 ->
            {AssignmentID, Files, SessionToken} = Assignment,
@@ -98,7 +98,7 @@ handle_call(
     %TODO add some functionality
     Path = "./AssignmentFiles/"++AssignmentID ++ "/",
     case file:make_dir(Path) of
-      Pat when Pat =:= ok; Pat =:= eexist ->
+      Pat when Pat =:= ok; Pat =:= {error,eexist} ->
           save_files(Files,Path),
           NewAssignments = dict:store(AssignmentID,{AssignmentDict,ModuleBinary},Assignments),
           {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
