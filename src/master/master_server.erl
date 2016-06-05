@@ -117,8 +117,10 @@ handle_call({handin_status,SessionToken}, _From, State) ->
 
 handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
     %TODO Fix sending files in process of its own
+    io:format("I am going to parse the file"),
     case assignment_parser:parse(AssignmentConfigBinary) of
         {ok,Dict} ->
+            io:format("I parsed the file"),
             case check_assignment_parameters(Dict,State) of
                 ok ->
                     %TODO Store files on server?
@@ -126,7 +128,9 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
                     ModuleBinary = dict:fetch(dict:fetch("module",Dict),State#masterState.modules),
                     Path = "./Assignments/" ++ AssignmentID ++ "/",
-                    spawn(save_files(Path,Files)),
+                    %TODO Error handling
+                    file:make_dir(Path),
+                    spawn(save_files(Files,Path)),
                     spawn(send_assignment_to_node(nodes(),AssignmentID,Dict,ModuleBinary,Files)),
                     {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
                 {error,Err} ->

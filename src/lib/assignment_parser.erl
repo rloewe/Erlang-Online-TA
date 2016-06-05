@@ -11,24 +11,20 @@ parse_assignment({AssignmentID,Module}) ->
     {AssignmentID,Module}.
 
 
-parse(Path) ->
+parse(Binary) ->
     %TODO check for default vals
     %TODO send back a proper missing req error
-    case file:read_file(Path) of
-         {ok, Binary} ->
-            Content = binary_to_list(Binary),
-            Lines = string:tokens(Content, "\n"),
-            Dict = populate_dict(Lines, dict:new()),
-            Required = dict:is_key("runorder", Dict) and dict:is_key("module", Dict)
-            and dict:is_key("assignmentid",Dict),
-            if 
-                Required -> 
-                    NewDict = add_defaults(Dict),
-                    {ok, NewDict};
-                true ->
-                    {error,missing_reqs}
-            end;
-         Error -> Error
+    Content = binary_to_list(Binary),
+    Lines = string:tokens(Content, "\n"),
+    Dict = populate_dict(Lines, dict:new()),
+    Required = dict:is_key("runorder", Dict) and dict:is_key("module", Dict)
+    and dict:is_key("assignmentid",Dict),
+    if 
+        Required -> 
+            NewDict = add_defaults(Dict),
+            {ok, NewDict};
+        true ->
+            {error,missing_reqs}
     end.
 
 populate_dict([], Dict) -> Dict;
