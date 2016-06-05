@@ -32,7 +32,7 @@ send_handin(AssignmentID,Files,MasterNode) ->
     %Do some magic to deal with files
     gen_server:call({master,MasterNode},{send_handin,AssignmentID,Files}).
 
-add_assignment(AssignmentConfig,MasterNode,Files) ->
+add_assignment(AssignmentConfig,Files,MasterNode) ->
     gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig,Files}).
 
 update_handin_job(SessionToken,NewStatus,MasterNode) ->
@@ -125,8 +125,10 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     AssignmentID = dict:fetch("assignmentid",Dict),
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
                     ModuleBinary = dict:fetch(dict:fetch("module",Dict),State#masterState.modules),
+                    Path = "./Assignments/" ++ AssignmentID ++ "/",
+                    spawn(save_files(Path,Files)),
                     spawn(send_assignment_to_node(nodes(),AssignmentID,Dict,ModuleBinary,Files)),
-                    {reply,ok,State#masterState{assignments=NewAssignments}};
+                    {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
                 {error,Err} ->
                     {reply, {error,Err},State}
             end;
@@ -199,3 +201,9 @@ send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,ModuleBinary,Files) ->
     UpdateFun = fun(Node) -> 
         node_server:add_assignment(Node,AssignmentID,AssignmentDict,ModuleBinary,Files) end,  
     lists:map(UpdateFun,Nodes).
+
+save_files([],_) ->
+    ok;
+save_files([{FileName,File} | Rest],Path) ->
+    file:write_file(Path++FileName,File),
+    save_files(Rest,Path).
