@@ -65,12 +65,13 @@ handle_call(
  ) ->
     %TODO handle assignment id
     %TODO fix magic constant
+    
     Size = dict:size(CurrentJobs),
     if Size < 2 ->
            {AssignmentID, Files, SessionToken} = Assignment,
            FsmPID = correct_fsm:start_link({node()}),
            correct_fsm:start_job(FsmPID,{none,none,SessionToken}),
-           NewCurrentJobs = dict:store(SessionToken,{AssignmentID,Files,FsmPID},CurrentJobs),
+           NewCurrentJobs = dict:store(SessionToken,{AssignmentID,FsmPID},CurrentJobs),
            io:format("Queue: ~p ~nCurrentJobs: ~p", [Queue, NewCurrentJobs]),
            {reply, started, {Queue, Assignments, NewCurrentJobs, MasterNode}};
        true ->

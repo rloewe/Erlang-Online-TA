@@ -123,11 +123,9 @@ handle_call({add_assignment,AssignmentConfigPath,Files}, _From, State) ->
                 ok ->
                     %TODO Store files on server?
                     AssignmentID = dict:fetch("assignmentid",Dict),
-                    NewAssignments = dict:store(AssignmentID,State#masterState.assignments),
+                    NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
                     ModuleBinary = dict:fetch(dict:fetch("module",Dict),State#masterState.modules),
-                    UpdateFun = fun(Node) -> 
-                        node_server:add_assignment(Node,AssignmentID,Dict,ModuleBinary,Files) end,  
-                    lists:map(UpdateFun,nodes()),
+                    spawn(send_assignment_to_node(nodes(),AssignmentID,Dict,ModuleBinary,Files)),
                     {reply,ok,State#masterState{assignments=NewAssignments}};
                 {error,Err} ->
                     {reply, {error,Err},State}
@@ -184,9 +182,9 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 check_assignment_parameters(AssignmentDict,State) ->
     Modules = State#masterState.modules,
     Assignments = State#masterState.assignments,
-    case dict:is_key(dict:fetch("assignmentid",AssignmentDict)) of
+    case dict:is_key(dict:fetch("assignmentid",AssignmentDict),Assignments) of
         true ->
-            {error,noassignid};
+            {error,assidexist};
         false ->
             case dict:is_key(dict:fetch("module",AssignmentDict),Modules) of
                 true ->
@@ -195,3 +193,9 @@ check_assignment_parameters(AssignmentDict,State) ->
                     {error,nomodule}
         end
     end.
+
+
+send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,ModuleBinary,Files) ->
+    UpdateFun = fun(Node) -> 
+        node_server:add_assignment(Node,AssignmentID,AssignmentDict,ModuleBinary,Files) end,  
+    lists:map(UpdateFun,Nodes).
