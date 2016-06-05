@@ -1,4 +1,4 @@
-%% script generated at {2016,5,31} {23,14,36}
+%% script generated at {2016,6,5} {15,43,47}
 {script,
     {"web_release","1"},
     [{preLoaded,
@@ -57,8 +57,8 @@
      {primLoad,[master_server]},
      {path,["$ROOT/lib/web-0.0.1/ebin"]},
      {primLoad,
-         [assignment_handler,formdata,handin_handler,socket_handler,web_app,
-          web_sup]},
+         [assignment_handler,formdata,handin_handler,json,socket_handler,
+          web_app,web_sup]},
      {progress,modules_loaded},
      {path,
          ["$ROOT/lib/kernel-4.2/ebin","$ROOT/lib/stdlib-2.8/ebin",
@@ -219,7 +219,7 @@
                    {vsn,"0.0.1"},
                    {id,[]},
                    {modules,
-                       [assignment_handler,formdata,handin_handler,
+                       [assignment_handler,formdata,handin_handler,json,
                         socket_handler,web_app,web_sup]},
                    {registered,[web_sup]},
                    {applications,[stdlib,kernel,cowboy,master]},

@@ -12,10 +12,20 @@
         </script>
     </head>
     <body>
-        Send Handin
-        <form action="/handin" method="POST" enctype="multipart/form-data">
-            <input type="text" name="id" /> <input type="file" name="files" />
-            <input type="submit" />
-        </form>
+        <div>
+            Send Handin
+            <form action="/handin" method="POST" enctype="multipart/form-data">
+                <input type="text" name="id" /> <input type="file" name="files" />
+                <input type="submit" />
+            </form>
+        </div>
+        <div>
+            Send Assignment
+            <form action="/addAssignment" method="POST" enctype="multipart/form-data">
+                <input type="file" name="config" />
+                <input type="file" name="files" multiple />
+                <input type="submit" />
+            </form>
+        </div>
     </body>
 </html>
