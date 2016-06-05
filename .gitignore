@@ -13,4 +13,5 @@ rel/example_project
 *.aux
 *.log
 *.out
+*.pdf
 .DS_Store
