@@ -130,8 +130,8 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     Path = "./Assignments/" ++ AssignmentID ++ "/",
                     %TODO Error handling
                     file:make_dir(Path),
-                    spawn(save_files(Files,Path)),
-                    spawn(send_assignment_to_node(nodes(),AssignmentID,Dict,ModuleBinary,Files)),
+                    spawn(fun() -> save_files(Files,Path) end),
+                    spawn(fun() -> send_assignment_to_node(nodes(),AssignmentID,Dict,ModuleBinary,Files) end),
                     {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
                 {error,Err} ->
                     {reply, {error,Err},State}
