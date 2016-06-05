@@ -115,9 +115,9 @@ handle_call({handin_status,SessionToken}, _From, State) ->
     end;
 
 
-handle_call({add_assignment,AssignmentConfigPath,Files}, _From, State) ->
+handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
     %TODO Fix sending files in process of its own
-    case assignment_parser:parse(AssignmentConfigPath) of
+    case assignment_parser:parse(AssignmentConfigBinary) of
         {ok,Dict} ->
             case check_assignment_parameters(Dict,State) of
                 ok ->
