@@ -171,10 +171,11 @@ handle_call({broadcast, Msg}, _From, State) ->
 
 
 handle_call({add_module,ModuleName,Binary}, _From, State) ->
-    ModulePath = "./Modules" + ModuleName + ".beam",
+    ModulePath = "./Modules" ++ atom_to_list(ModuleName) ++ ".beam",
     case file:write_file(ModulePath,Binary) of
         ok ->
             NewModules = dict:store(ModuleName,ModulePath,State#masterState.modules),
+            send_module_to_nodes(nodes(),ModuleName,Binary),
             {reply, ok, State#masterState{modules = NewModules}};
         {error, Reason} ->
             {reply,{error,Reason},State}
@@ -205,7 +206,7 @@ check_assignment_parameters(AssignmentDict,State) ->
 
 %TODO Make generic send function
 
-send_module_to_node(Nodes,ModuleName,ModuleBinary) ->
+send_module_to_nodes(Nodes,ModuleName,ModuleBinary) ->
     UpdateFun = fun(Node) -> 
         node_server:save_module(Node,ModuleName,ModuleBinary) end,  
     lists:map(UpdateFun,Nodes).

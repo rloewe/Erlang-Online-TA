@@ -3,7 +3,7 @@
 -import (master_server, [connect_to/3]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/4,save_module/3]).
+-export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/4,add_module/3]).
 
 
 % API call to start the node server, takes a path to a node server config file as argument
@@ -39,8 +39,8 @@ add_assignment(Node,AssignmentID,AssignmentDict,Files) ->
     gen_server:call({?MODULE,Node},{add_assignment,AssignmentID,AssignmentDict,Files}).
 
 %Save module binary on node server, takes the modulename and module binary as arguments
-save_module(Node,ModuleName,ModuleBinary) -> 
-    gen_server:call({?MODULE,Node},{save_module,ModuleName,ModuleBinary}).
+add_module(Node,ModuleName,ModuleBinary) -> 
+    gen_server:call({?MODULE,Node},{add_module,ModuleName,ModuleBinary}).
 
 
 init([MasterNode,Specs]) ->
@@ -117,7 +117,7 @@ handle_call(
         {reply, {error,E},{Queue,Assignments,CurrentJobs,MasterNode}}
     end;
 
-handle_call({save_module,ModuleName,ModuleBinary}, _From, State) ->
+handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
     Path = "./Modules/" ++ atom_to_list(ModuleName),                    
     case file:write_file(Path++ ".beam",ModuleBinary) of
         ok ->
