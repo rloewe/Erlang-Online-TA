@@ -29,7 +29,6 @@ get_handin_status(SessionToken,MasterNode) ->
     gen_server:call({master,MasterNode},{handin_status,SessionToken}).
 
 send_handin(AssignmentID,Files,MasterNode) ->
-    %Do some magic to deal with files
     gen_server:call({master,MasterNode},{send_handin,AssignmentID,Files}).
 
 add_assignment(AssignmentConfig,Files,MasterNode) ->
@@ -91,7 +90,6 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
                     Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
-                    %TODO some magic with the node
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status},State#masterState.sessions),
                     {reply,{ok,{SessionToken,Status}},State#masterState{sessions=NewSessions}};
                 true ->
@@ -126,12 +124,11 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     %TODO Store files on server?
                     AssignmentID = dict:fetch("assignmentid",Dict),
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
-                    ModuleBinary = dict:fetch(dict:fetch("module",Dict),State#masterState.modules),
                     Path = "./Assignments/" ++ AssignmentID ++ "/",
                     %TODO Error handling
                     file:make_dir(Path),
                     spawn(fun() -> save_files(Files,Path) end),
-                    spawn(fun() -> send_assignment_to_node(nodes(),AssignmentID,Dict,ModuleBinary,Files) end),
+                    spawn(fun() -> send_assignment_to_node(nodes(),AssignmentID,Dict,Files) end),
                     {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
                 {error,Err} ->
                     {reply, {error,Err},State}
@@ -174,8 +171,14 @@ handle_call({broadcast, Msg}, _From, State) ->
 
 
 handle_call({add_module,ModuleName,Binary}, _From, State) ->
-    NewModules = dict:store(ModuleName,Binary,State#masterState.modules),
-    {reply, ok, State#masterState{modules = NewModules}};
+    ModulePath = "./Modules" + ModuleName + ".beam",
+    case file:write_file(ModulePath,Binary) of
+        ok ->
+            NewModules = dict:store(ModuleName,ModulePath,State#masterState.modules),
+            {reply, ok, State#masterState{modules = NewModules}};
+        {error, Reason} ->
+            {reply,{error,Reason},State}
+    end;
 
 handle_call(_Message, _From, State) ->
     io:format("Got error"),
@@ -200,10 +203,17 @@ check_assignment_parameters(AssignmentDict,State) ->
         end
     end.
 
+%TODO Make generic send function
 
-send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,ModuleBinary,Files) ->
+send_module_to_node(Nodes,ModuleName,ModuleBinary) ->
     UpdateFun = fun(Node) -> 
-        node_server:add_assignment(Node,AssignmentID,AssignmentDict,ModuleBinary,Files) end,  
+        node_server:save_module(Node,ModuleName,ModuleBinary) end,  
+    lists:map(UpdateFun,Nodes).
+
+
+send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,Files) ->
+    UpdateFun = fun(Node) -> 
+        node_server:add_assignment(Node,AssignmentID,AssignmentDict,Files) end,  
     lists:map(UpdateFun,Nodes).
 
 save_files([],_) ->
