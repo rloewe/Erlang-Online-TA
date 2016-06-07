@@ -11,7 +11,13 @@
 
 
 connect_to(Node,Specs,MasterNode) ->
-    gen_server:call({master,MasterNode},{add_node,Node,Specs}).
+    try gen_server:call({master,MasterNode},{add_node,Node,Specs}) of
+        _ ->
+            ok
+    catch
+        exit:_ -> {error,nocon}
+    end.
+    
 
 start(ConfigFile) ->
     %% @TODO change ConfigFile variable name
@@ -48,14 +54,20 @@ deregister_socket(Pid, MasterNode) ->
 -record(masterState, {nodes, sessions, assignments, modules, userSockets}).
 
 init([]) ->
-    {ok, #masterState{
-            nodes = dict:new(),
-            sessions = dict:new(),
-            assignments = dict:new(),
-            modules = dict:new(),
-            userSockets = []
-           }
-    }.
+    case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
+        ok ->
+            {ok, #masterState{
+                nodes = dict:new(),
+                sessions = dict:new(),
+                assignments = dict:new(),
+                modules = dict:new(),
+                userSockets = []
+                }
+            };
+        {error,E} ->
+            {stop,{error,E}}
+    end.
+    
 
 handle_cast(_Message, State) ->
     {noreply, State}.
@@ -80,6 +92,7 @@ handle_call({add_node,Node,Specs}, _From, State) ->
     {reply, ok, State#masterState{nodes=NewNodes}};
 
 handle_call({send_handin,AssignmentID,Files},_From, State) ->
+    %TODO Save files locally?
     case dict:is_key(AssignmentID,State#masterState.assignments) of
         true ->
             %Random distribution of work over nodes
@@ -115,10 +128,8 @@ handle_call({handin_status,SessionToken}, _From, State) ->
 
 handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
     %TODO Fix sending files in process of its own
-    io:format("I am going to parse the file"),
     case assignment_parser:parse(AssignmentConfigBinary) of
         {ok,Dict} ->
-            io:format("I parsed the file"),
             case check_assignment_parameters(Dict,State) of
                 ok ->
                     %TODO Store files on server?
@@ -127,7 +138,7 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     Path = "./Assignments/" ++ AssignmentID ++ "/",
                     %TODO Error handling
                     file:make_dir(Path),
-                    spawn(fun() -> save_files(Files,Path) end),
+                    spawn(fun() -> helper_functions:save_files(Files,Path) end),
                     spawn(fun() -> send_assignment_to_node(nodes(),AssignmentID,Dict,Files) end),
                     {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
                 {error,Err} ->
@@ -181,9 +192,12 @@ handle_call({add_module,ModuleName,Binary}, _From, State) ->
             {reply,{error,Reason},State}
     end;
 
+
 handle_call(_Message, _From, State) ->
     io:format("Got error"),
     {reply, error, State}.
+
+
 
 handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
@@ -208,7 +222,7 @@ check_assignment_parameters(AssignmentDict,State) ->
 
 send_module_to_nodes(Nodes,ModuleName,ModuleBinary) ->
     UpdateFun = fun(Node) -> 
-        node_server:save_module(Node,ModuleName,ModuleBinary) end,  
+        node_server:add_module(Node,ModuleName,ModuleBinary) end,  
     lists:map(UpdateFun,Nodes).
 
 
@@ -216,9 +230,3 @@ send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,Files) ->
     UpdateFun = fun(Node) -> 
         node_server:add_assignment(Node,AssignmentID,AssignmentDict,Files) end,  
     lists:map(UpdateFun,Nodes).
-
-save_files([],_) ->
-    ok;
-save_files([{FileName,File} | Rest],Path) ->
-    file:write_file(Path++FileName,File),
-    save_files(Rest,Path).

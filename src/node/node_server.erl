@@ -6,7 +6,8 @@
 -export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/4,add_module/3]).
 
 
-% API call to start the node server, takes a path to a node server config file as argument
+% API call to start the node server, takes a path to a node server config file as argument,
+% Creates the requires directories for files
 % Returns {ok,PID} or {error,Message}. 
 start(Path) ->
     %TODO add parse config
@@ -51,9 +52,14 @@ init([MasterNode,Specs]) ->
             Assignments = dict:new(),
             CurrentJobs = dict:new(),
             %Supervisor = supervisor:
-            {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
-        A ->
-            io:format("~p",[A]),
+            case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
+                ok ->
+                    {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
+                {error,E} ->
+                    {stop,{error,E}}
+            end;
+        {error,nocon} ->
+            io:format("Cannot connect to ~p \n",[MasterNode]),
             {stop,nocon}
     end.
 
@@ -71,8 +77,8 @@ handle_call(
     %TODO fix magic constant
     %TODO move file handling to seperate thread
     %TODO Add subfolders for each handin
-    Path = "./handins/",
-    save_files(Files,Path),
+    Path = "./Handins/",
+    helper_functions:save_files(Files,Path),
     Size = dict:size(CurrentJobs),
     if  
         Size < 2 ->
@@ -106,11 +112,11 @@ handle_call(
 handle_call(
   {add_assignment,AssignmentID,AssignmentDict,Files}, _From, 
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
-    %TODO add some functionality
-    Path = "./AssignmentFiles/"++AssignmentID ++ "/",
+    %TODO Compile build image of module
+    Path = "./Assignments/"++AssignmentID ++ "/",
     case file:make_dir(Path) of
       Pat when Pat =:= ok; Pat =:= {error,eexist} ->
-          save_files(Files,Path),
+          helper_functions:save_files(Files,Path),
           NewAssignments = dict:store(AssignmentID,AssignmentDict,Assignments),
           {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
       E -> 
@@ -140,11 +146,7 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
 
-save_files([],_) ->
-  ok;
-save_files([{FileName,File} | Rest ],Path) ->
-  file:write_file(Path++FileName,File),
-  save_files(Rest,Path).
+
 
 start_handin(AssignmentID,Assignments,FilePath,SessionToken) ->
     case dict:find(AssignmentID,Assignments) of 
