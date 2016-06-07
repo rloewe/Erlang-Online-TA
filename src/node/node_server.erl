@@ -35,7 +35,7 @@ finish_handin_job(Node,SessionToken,Res) ->
     gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
 
 %API call for adding an assignment to the node server
-add_assignment(Node,AssignmentID,AssignmentDict,ModuleBinary,Files) ->
+add_assignment(Node,AssignmentID,AssignmentDict,Files) ->
     gen_server:call({?MODULE,Node},{add_assignment,AssignmentID,AssignmentDict,Files}).
 
 %Save module binary on node server, takes the modulename and module binary as arguments
@@ -71,22 +71,22 @@ handle_call(
     %TODO fix magic constant
     %TODO move file handling to seperate thread
     %TODO Add subfolders for each handin
-    Path = "./handins/"
+    Path = "./handins/",
     save_files(Files,Path),
     Size = dict:size(CurrentJobs),
-    if Size < 2 ->
-        true ->
-            case start_handin(Assignments,Path,SessionToken) of
-                {ok, AssignmentID,FsmPID} 
-                    NewCurrentJobs = dict:store(SessionToken,{AssignmentID,FsmPID},CurrentJobs),
+    if  
+        Size < 2 ->
+            case start_handin(AssignmentID,Assignments,Path,SessionToken) of
+                {ok,FsmPID} ->
+                    NewCurrentJobs = dict:store(SessionToken,FsmPID,CurrentJobs),
                     io:format("Queue: ~p ~nCurrentJobs: ~p", [Queue, NewCurrentJobs]),
                     {reply, started, {Queue, Assignments, NewCurrentJobs, MasterNode}};
                 {error,noassign} ->
                     %TODO handle getting assignment
                     {reply,notstarted,{Queue,Assignments,CurrentJobs,MasterNode}}
                     end;
-        false ->
-            NewQueue = queue:in(Assignment, Queue),
+        true ->
+            NewQueue = queue:in({AssignmentID,Path,SessionToken},Queue),
             io:format("Queue: ~p ~nCurrentJobs: ~p", [NewQueue, CurrentJobs]),
             {reply, queued, {NewQueue, Assignments, CurrentJobs, MasterNode}}
     end;
@@ -118,10 +118,15 @@ handle_call(
     end;
 
 handle_call({save_module,ModuleName,ModuleBinary}, _From, State) ->
-    Path = "./Modules/" ++ ModuleName + ".beam",
-    case file:write_file(Path,ModuleBinary) of
+    Path = "./Modules/" ++ atom_to_list(ModuleName),                    
+    case file:write_file(Path++ ".beam",ModuleBinary) of
         ok ->
-            {reply,ok,State};
+            case code:load_abs(Path) of 
+                {module,Module} ->
+                    {reply,ok,State};
+                {error,Reason} ->
+                    {reply,{error,Reason},State}
+            end;                    
         {error,Reason} ->
             {reply, {error,Reason}, State}  
     end;    
@@ -141,14 +146,13 @@ save_files([{FileName,File} | Rest ],Path) ->
   file:write_file(Path++FileName,File),
   save_files(Rest,Path).
 
-start_handin(Assignments,FilePath,SessionToken) ->
+start_handin(AssignmentID,Assignments,FilePath,SessionToken) ->
     case dict:find(AssignmentID,Assignments) of 
-        {ok,AssignDict}
+        {ok,AssignDict} ->
             FsmPID = correct_fsm:start_link({node()}),
-            correct_fsm:start_job(FsmPID,Assignment,FilePath,SessionToken}),
-            {ok,{AssignmentID,FsmPID}};
+            correct_fsm:start_job(FsmPID,AssignDict,FilePath,SessionToken),
+            {ok,FsmPID};
         error ->
             %TODO Handle some call back to request from master
             {error,noassign}
-    end;
-
+    end.
