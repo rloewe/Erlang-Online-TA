@@ -17,7 +17,7 @@ connect_to(Node,Specs,MasterNode) ->
     catch
         exit:_ -> {error,nocon}
     end.
-    
+
 
 start(ConfigFile) ->
     %% @TODO change ConfigFile variable name
@@ -67,7 +67,7 @@ init([]) ->
         {error,E} ->
             {stop,{error,E}}
     end.
-    
+
 
 handle_cast(_Message, State) ->
     {noreply, State}.
@@ -81,6 +81,10 @@ handle_call({add_node,Node,Specs}, _From, State) ->
         false ->
             case net_kernel:connect_node(Node) of
                 true ->
+                    spawn(fun() -> send_files_to_node(Node,
+                                                      State#masterState.assignments,
+                                                      State#masterState.modules)
+                                   end),
                     NewNodes = dict:store(Node,Specs,State#masterState.nodes);
                 false ->
                     NewNodes = State#masterState.nodes;
@@ -92,16 +96,17 @@ handle_call({add_node,Node,Specs}, _From, State) ->
     {reply, ok, State#masterState{nodes=NewNodes}};
 
 handle_call({send_handin,AssignmentID,Files},_From, State) ->
-    %TODO Save files locally?
+    %TODO Make subdir for each handin
     case dict:is_key(AssignmentID,State#masterState.assignments) of
         true ->
             %Random distribution of work over nodes
             NumberOfNodes = length(nodes()),
-            if 
+            if
                 NumberOfNodes > 0 ->
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
+                    spawn(fun() -> helper_functions:save_files(Files,"./Handins/") end),
                     Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status},State#masterState.sessions),
                     {reply,{ok,{SessionToken,Status}},State#masterState{sessions=NewSessions}};
@@ -127,12 +132,10 @@ handle_call({handin_status,SessionToken}, _From, State) ->
 
 
 handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
-    %TODO Fix sending files in process of its own
     case assignment_parser:parse(AssignmentConfigBinary) of
         {ok,Dict} ->
             case check_assignment_parameters(Dict,State) of
                 ok ->
-                    %TODO Store files on server?
                     AssignmentID = dict:fetch("assignmentid",Dict),
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
                     Path = "./Assignments/" ++ AssignmentID ++ "/",
@@ -221,12 +224,42 @@ check_assignment_parameters(AssignmentDict,State) ->
 %TODO Make generic send function
 
 send_module_to_nodes(Nodes,ModuleName,ModuleBinary) ->
-    UpdateFun = fun(Node) -> 
-        node_server:add_module(Node,ModuleName,ModuleBinary) end,  
+    UpdateFun = fun(Node) ->
+        node_server:add_module(Node,ModuleName,ModuleBinary) end,
     lists:map(UpdateFun,Nodes).
 
 
 send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,Files) ->
-    UpdateFun = fun(Node) -> 
-        node_server:add_assignment(Node,AssignmentID,AssignmentDict,Files) end,  
+    UpdateFun = fun(Node) ->
+        node_server:add_assignment(Node,AssignmentID,AssignmentDict,Files) end,
     lists:map(UpdateFun,Nodes).
+
+send_files_to_node(Node,Assignments,Modules) ->
+    %Modules, Assignments
+    AssignmentList = dict:to_list(Assignments),
+    ModuleList = dict:to_list(Modules),
+    AssignSendFun = fun({AssignmentID,AssignDict}) ->
+        Paths = file:list_dir("./Assignments/" ++ AssignmentID),
+        Files = load_files_from_dir(Paths,[]),
+        node_server:add_assignment(Node,AssignmentID,AssignDict,Files)
+    end,
+    lists:map(AssignSendFun,AssignmentList),
+    ModuleSendFun = fun({ModuleName,ModulePath}) ->
+        {ok,Binary} = file:read_file(ModulePath),
+        node_server:add_module(Node,ModuleName,Binary)
+    end,
+    lists:map(ModuleSendFun,ModuleList).
+
+
+load_files_from_dir([],Files) ->
+    Files;
+load_files_from_dir([Path | Paths], Files)->
+    case file:read_file("./Assignments/" ++ Path) of
+        {ok, Binary} ->
+            load_files_from_dir(Paths,[{Path,Binary} | Paths]);
+        enomem ->
+            %This case might be interesting
+            load_files_from_dir(Paths,Files);
+        _ ->
+            load_files_from_dir(Paths,Files)
+    end.
