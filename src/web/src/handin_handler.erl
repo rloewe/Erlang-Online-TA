@@ -18,7 +18,13 @@ handle(Req, State=#state{}) ->
             {ok, Input, _Req3} = formdata:multipart(Req2),
             {ok, AssignmentID} = dict:find(<<"id">>, Input),
             {ok, Files} = dict:find(<<"files">>, Input),
-            send_handin(AssignmentID, Files, 'master@127.0.0.1'),
+            send_handin(AssignmentID,
+                        lists:map(fun ({file, Filename, FileContent}) ->
+                                             {binary:bin_to_list(Filename),
+                                              FileContent}
+                                     end,
+                                     Files),
+                        'master@127.0.0.1'),
             {ok, Req4} = cowboy_req:reply(200,
                 [{<<"content-type">>, <<"text/html">>}],
                 <<"Handin sent">>,

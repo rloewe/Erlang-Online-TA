@@ -24,6 +24,8 @@ websocket_handle(_Frame, Req, State) ->
 
 websocket_info({hello, Assignments}, Req, State) ->
     {reply, {text, json:encode(Assignments)}, Req, State};
+websocket_info({newAssignment, Assignment}, Req, State) ->
+    {reply, {text, json:encode(Assignment)}, Req, State};
 websocket_info(_Message, Req, State) ->
     io:format("~p", [Req]),
     %% Perform post_init initialization here...

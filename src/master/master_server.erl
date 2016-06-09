@@ -146,6 +146,9 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
             case check_assignment_parameters(Dict,State) of
                 ok ->
                     AssignmentID = dict:fetch("assignmentid",Dict),
+                    Name = "Test", %TODO: generate assignmentID on server --dict:fecth(""),
+                    Dict = dict:store("id", AssignmentID, dict:store("name", Name, dict:new())),
+                    do_broadcast({newAssignment, Dict}, State#masterState.userSockets),
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
                     Path = "./Assignments/" ++ AssignmentID ++ "/",
                     %TODO Error handling
@@ -232,6 +235,8 @@ check_assignment_parameters(AssignmentDict,State) ->
         end
     end.
 
+do_broadcast(Msg, Sockets) ->
+    lists:map(fun(Pid) -> Pid ! Msg end, Sockets).
 
 send_module_to_nodes(Nodes,ModuleName,ModuleBinary) ->
     UpdateFun = fun(Node) ->

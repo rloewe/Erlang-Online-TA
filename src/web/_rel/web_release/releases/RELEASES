@@ -5,6 +5,7 @@
            {cowlib,"1.0.2","./lib/cowlib-1.0.2"},
            {ranch,"1.2.1","./lib/ranch-1.2.1"},
            {cowboy,"1.0.4","./lib/cowboy-1.0.4"},
+           {config_parser,"0.0.1","./lib/config_parser-0.0.1"},
            {master,"0.0.1","./lib/master-0.0.1"},
            {web,"0.0.1","./lib/web-0.0.1"}],
           permanent}].

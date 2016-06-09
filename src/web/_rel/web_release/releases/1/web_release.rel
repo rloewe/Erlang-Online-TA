@@ -6,5 +6,6 @@
           {cowlib,"1.0.2"},
           {ranch,"1.2.1"},
           {cowboy,"1.0.4"},
+          {config_parser,"0.0.1"},
           {master,"0.0.1"},
           {web,"0.0.1"}]}. 

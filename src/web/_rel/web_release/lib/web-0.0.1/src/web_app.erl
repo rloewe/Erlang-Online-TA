@@ -1,6 +1,8 @@
 -module(web_app).
 -behaviour(application).
 
+-import(config_parser, [parse/2]).
+
 -export([start/2]).
 -export([stop/1]).
 
@@ -17,12 +19,21 @@ start(_Type, _Args) ->
          ]
         }
     ]),
-    erlang:set_cookie(node(), herpderpdiderp),
-    net_kernel:connect_node('master@127.0.0.1'),
-    cowboy:start_http(my_http_listener, 100, [{port, 8080}],
-        [{env, [{dispatch, Dispatch}]}]
-    ),
-	web_sup:start_link().
+    io:format("~p", [file:get_cwd()]),
+    case parse("server.conf", false) of
+        {ok, Config} ->
+            Cookie = dict:fetch("Cookie", Config),
+            MasterNode = dict:fetch("Master", Config),
+            erlang:set_cookie(node(),Cookie),
+            net_kernel:connect_node(MasterNode),
+            cowboy:start_http(my_http_listener, 100, [{port, 8080}],
+                [{env, [{dispatch, Dispatch}]}]
+            ),
+            web_sup:start_link();
+        {error, Msg} ->
+            io:format("~p", [Msg]),
+            {error,Msg}
+    end.
 
 stop(_State) ->
-	ok.
+    ok.

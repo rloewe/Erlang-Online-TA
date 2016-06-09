@@ -7,6 +7,8 @@
                 document.body.appendChild(document.createTextNode("Socket open"));
             }
             socket.onmessage = function(e) {
+                var data = JSON.parse(e.data);
+
                 document.body.appendChild(document.createTextNode(e.data));
             };
         </script>
@@ -15,7 +17,10 @@
         <div>
             Send Handin
             <form action="/handin" method="POST" enctype="multipart/form-data">
-                <input type="text" name="id" /> <input type="file" name="files" />
+                <select name="id" disabled>
+                    <option value="lol">lol</option>
+                </select>
+                <input type="file" name="files" />
                 <input type="submit" />
             </form>
         </div>

@@ -147,7 +147,6 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
 
-
 start_handin(AssignmentID,Assignments,FilePath,SessionToken) ->
     case dict:find(AssignmentID,Assignments) of
         {ok,AssignDict} ->
