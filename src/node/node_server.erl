@@ -8,7 +8,7 @@
 
 % API call to start the node server, takes a path to a node server config file as argument,
 % Creates the requires directories for files
-% Returns {ok,PID} or {error,Message}. 
+% Returns {ok,PID} or {error,Message}.
 start(Path) ->
     %TODO add parse config
     case parse(Path, false) of
@@ -25,12 +25,12 @@ start(Path) ->
             {error,Msg}
     end.
 
-%API call for queueing a new job on a node server, should be called from the 
+%API call for queueing a new job on a node server, should be called from the
 %master server. Returns started or queued depending on if the job is started.
 queue_handin_job(Node, AssignmentID, Files, SessionToken) ->
     gen_server:call({?MODULE, Node}, {queue_job, AssignmentID, Files, SessionToken}).
 
-%API call for finishing an assignment on a node server, should be called from the 
+%API call for finishing an assignment on a node server, should be called from the
 %FSM assosiated to the job. Returns ok
 finish_handin_job(Node,SessionToken,Res) ->
     gen_server:call({?MODULE,Node},{finish_job,{SessionToken,Res}}).
@@ -40,7 +40,8 @@ add_assignment(Node,AssignmentID,AssignmentDict,Files) ->
     gen_server:call({?MODULE,Node},{add_assignment,AssignmentID,AssignmentDict,Files}).
 
 %Save module binary on node server, takes the modulename and module binary as arguments
-add_module(Node,ModuleName,ModuleBinary) -> 
+add_module(Node,ModuleName,ModuleBinary) ->
+    io:format("Received module ~p \n",[ModuleName]),
     gen_server:call({?MODULE,Node},{add_module,ModuleName,ModuleBinary}).
 
 
@@ -80,7 +81,7 @@ handle_call(
     Path = "./Handins/",
     helper_functions:save_files(Files,Path),
     Size = dict:size(CurrentJobs),
-    if  
+    if
         Size < 2 ->
             case start_handin(AssignmentID,Assignments,Path,SessionToken) of
                 {ok,FsmPID} ->
@@ -107,10 +108,10 @@ handle_call(
     %TODO Kill FSM
     NewCurrentJobs = dict:erase(SessionToken,CurrentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res},MasterNode),
-    {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};    
+    {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};
 
 handle_call(
-  {add_assignment,AssignmentID,AssignmentDict,Files}, _From, 
+  {add_assignment,AssignmentID,AssignmentDict,Files}, _From,
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     %TODO Compile build image of module
     Path = "./Assignments/"++AssignmentID ++ "/",
@@ -119,23 +120,23 @@ handle_call(
           helper_functions:save_files(Files,Path),
           NewAssignments = dict:store(AssignmentID,AssignmentDict,Assignments),
           {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
-      E -> 
+      E ->
         {reply, {error,E},{Queue,Assignments,CurrentJobs,MasterNode}}
     end;
 
 handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
-    Path = "./Modules/" ++ atom_to_list(ModuleName),                    
+    Path = "./Modules/" ++ atom_to_list(ModuleName),
     case file:write_file(Path++ ".beam",ModuleBinary) of
         ok ->
-            case code:load_abs(Path) of 
+            case code:load_abs(Path) of
                 {module,Module} ->
                     {reply,ok,State};
                 {error,Reason} ->
                     {reply,{error,Reason},State}
-            end;                    
+            end;
         {error,Reason} ->
-            {reply, {error,Reason}, State}  
-    end;    
+            {reply, {error,Reason}, State}
+    end;
 
 handle_call(_Message, _From, State) ->
     {reply, error, State}.
@@ -149,7 +150,7 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
 start_handin(AssignmentID,Assignments,FilePath,SessionToken) ->
-    case dict:find(AssignmentID,Assignments) of 
+    case dict:find(AssignmentID,Assignments) of
         {ok,AssignDict} ->
             FsmPID = correct_fsm:start_link({node()}),
             correct_fsm:start_job(FsmPID,AssignDict,FilePath,SessionToken),
