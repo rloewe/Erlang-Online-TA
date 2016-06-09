@@ -74,25 +74,19 @@ handle_cast(_Message, State) ->
 
 
 handle_call({add_node,Node,Specs}, _From, State) ->
-    case dict:is_key(Node,State#masterState.nodes) of
+    case net_kernel:connect_node(Node) of
         true ->
-            %Just adding the case, dont know what to do with it yet
-            NewNodes = State#masterState.nodes;
+            spawn(fun() -> send_files_to_node(Node,
+                                              State#masterState.assignments,
+                                              State#masterState.modules)
+                            end),
+            NewNodes = dict:store(Node,Specs,State#masterState.nodes);
         false ->
-            case net_kernel:connect_node(Node) of
-                true ->
-                    spawn(fun() -> send_files_to_node(Node,
-                                                      State#masterState.assignments,
-                                                      State#masterState.modules)
-                                   end),
-                    NewNodes = dict:store(Node,Specs,State#masterState.nodes);
-                false ->
-                    NewNodes = State#masterState.nodes;
-                ignored ->
-                    %Is a case of connect node, added with dummy for now
-                    NewNodes = State#masterState.nodes
-            end
-        end,
+            NewNodes = State#masterState.nodes;
+        ignored ->
+            %Is a case of connect node, added with dummy for now
+            NewNodes = State#masterState.nodes
+    end,
     {reply, ok, State#masterState{nodes=NewNodes}};
 
 handle_call({send_handin,AssignmentID,Files},_From, State) ->

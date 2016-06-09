@@ -41,7 +41,6 @@ add_assignment(Node,AssignmentID,AssignmentDict,Files) ->
 
 %Save module binary on node server, takes the modulename and module binary as arguments
 add_module(Node,ModuleName,ModuleBinary) ->
-    io:format("Received module ~p \n",[ModuleName]),
     gen_server:call({?MODULE,Node},{add_module,ModuleName,ModuleBinary}).
 
 
