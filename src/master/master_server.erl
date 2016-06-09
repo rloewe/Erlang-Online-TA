@@ -69,7 +69,19 @@ init([]) ->
     end.
 
 
+handle_cast({nodedown,Node}, State) ->
+    %Check if node got back online, might be useless
+    case lists:member(Node,nodes()) of
+        true ->
+            nothing;
+        false ->
+            Jobs =
+            nothing
+    end,
+    {noreply, State};
+
 handle_cast(_Message, State) ->
+    io:format("test"),
     {noreply, State}.
 
 
@@ -81,7 +93,7 @@ handle_call({add_node,Node,Specs}, _From, State) ->
                                               State#masterState.modules)
                             end),
             spawn(fun() -> monitor(Node) end),
-            NewNodes = dict:store(Node,Specs,State#masterState.nodes);
+            NewNodes = State#masterState.nodes;
         false ->
             NewNodes = State#masterState.nodes;
         ignored ->
@@ -94,6 +106,7 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
     %TODO Make subdir for each handin
     case dict:is_key(AssignmentID,State#masterState.assignments) of
         true ->
+            %TODO some datastructure where searching in either nodes or session key
             %Random distribution of work over nodes
             NumberOfNodes = length(nodes()),
             if
@@ -103,8 +116,9 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
                     spawn(fun() -> helper_functions:save_files(Files,"./Handins/") end),
                     Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
+                    NewNodes = dict:append(Node,SessionToken,State#masterState.sessions),
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status},State#masterState.sessions),
-                    {reply,{ok,{SessionToken,Status}},State#masterState{sessions=NewSessions}};
+                    {reply,{ok,{SessionToken,Status}},State#masterState{nodes = NewNodes, sessions=NewSessions}};
                 true ->
                     io:format("Could not start session, no nodes available"),
                     {reply,{error,no_nodes},State}
@@ -154,11 +168,13 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
                 running ->
                     NewSessions = dict:store(SessionToken,NewStatus,State#masterState.sessions),
                     {reply, {ok,updated}, State#masterState{sessions=NewSessions}};
-                {finished,ReturnVal} ->
+                {finished,ReturnVal,Node} ->
                     %TODO magic with files and return call to end user
                     io:format("Master server job finished ~p \n",[ReturnVal]),
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
-                    {reply, {ok,finished}, State#masterState{sessions=NewSessions}}
+                    RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
+                    NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
+                    {reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}}
             end;
         false ->
             {reply, {error,nosess}, State}
@@ -263,5 +279,6 @@ monitor(Node) ->
     monitor_node(Node,true),
     receive
         {E,Node} ->
+            gen_server:cast(node(),{nodedown,Node}),
             io:format("Node ~p went down for reason: ~p \n",[Node,E])
     end.

@@ -106,7 +106,7 @@ handle_call(
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
     NewCurrentJobs = dict:erase(SessionToken,CurrentJobs),
-    master_server:update_handin_job(SessionToken,{finished,Res},MasterNode),
+    master_server:update_handin_job(SessionToken,{finished,Res,node()},MasterNode),
     {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};
 
 handle_call(
