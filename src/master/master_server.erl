@@ -185,7 +185,7 @@ handle_call({broadcast, Msg}, _From, State) ->
 
 
 handle_call({add_module,ModuleName,Binary}, _From, State) ->
-    ModulePath = "./Modules" ++ atom_to_list(ModuleName) ++ ".beam",
+    ModulePath = "./Modules/" ++ atom_to_list(ModuleName) ++ ".beam",
     case file:write_file(ModulePath,Binary) of
         ok ->
             NewModules = dict:store(ModuleName,ModulePath,State#masterState.modules),
@@ -241,13 +241,11 @@ send_files_to_node(Node,Assignments,Modules) ->
     AssignSendFun = fun({AssignmentID,AssignDict}) ->
         Paths = file:list_dir("./Assignments/" ++ AssignmentID),
         Files = load_files_from_dir(Paths,[]),
-        io:format("Sending assignment ~p to node ~p \n",[AssignmentID,Node]),
         node_server:add_assignment(Node,AssignmentID,AssignDict,Files)
     end,
     lists:map(AssignSendFun,AssignmentList),
     ModuleSendFun = fun({ModuleName,ModulePath}) ->
         {ok,Binary} = file:read_file(ModulePath),
-        io:format("sending module ~p to node ~p \n",[ModuleName,Node]),
         node_server:add_module(Node,ModuleName,Binary)
     end,
     lists:map(ModuleSendFun,ModuleList).
