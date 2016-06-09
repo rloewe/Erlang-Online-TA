@@ -80,6 +80,7 @@ handle_call({add_node,Node,Specs}, _From, State) ->
                                               State#masterState.assignments,
                                               State#masterState.modules)
                             end),
+            spawn(fun() -> monitor_node(Node) end),
             NewNodes = dict:store(Node,Specs,State#masterState.nodes);
         false ->
             NewNodes = State#masterState.nodes;
@@ -215,7 +216,6 @@ check_assignment_parameters(AssignmentDict,State) ->
         end
     end.
 
-%TODO Make generic send function
 
 send_module_to_nodes(Nodes,ModuleName,ModuleBinary) ->
     UpdateFun = fun(Node) ->
@@ -257,3 +257,11 @@ load_files_from_dir([Path | Paths], Files)->
         _ ->
             load_files_from_dir(Paths,Files)
     end.
+
+%Simple monitor implementation
+monitor(Node) ->
+    monitor_node(Node,true),
+    receive
+        {E,Node} ->
+            io:format("Node ~p went down for reason: ~p \n",[Node,E])
+    end
