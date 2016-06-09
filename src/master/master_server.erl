@@ -80,7 +80,7 @@ handle_call({add_node,Node,Specs}, _From, State) ->
                                               State#masterState.assignments,
                                               State#masterState.modules)
                             end),
-            spawn(fun() -> monitor_node(Node) end),
+            spawn(fun() -> monitor(Node) end),
             NewNodes = dict:store(Node,Specs,State#masterState.nodes);
         false ->
             NewNodes = State#masterState.nodes;
@@ -264,4 +264,4 @@ monitor(Node) ->
     receive
         {E,Node} ->
             io:format("Node ~p went down for reason: ~p \n",[Node,E])
-    end
+    end.
