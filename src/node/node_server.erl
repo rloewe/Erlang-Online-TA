@@ -70,12 +70,14 @@ handle_cast(
   {Queue, Assignments, CurrentJobs, MasterNode}) ->
     case Status of
         running ->
-            {FsmPID,SessionToken} = JobState,
-            NewCurrentJobs = dict:store(SessionToken,FsmPID,CurrentJobs),
+            {FsmPID,FilePath,SessionToken} = JobState,
+            NewCurrentJobs = dict:store(SessionToken,{FilePath,FsmPID},CurrentJobs),
+            master_server:update_handin_job(SessionToken,running,MasterNode),
             {noreply,{Queue,Assignments,NewCurrentJobs,MasterNode}};
         queue ->
             {AssignmentID,FilePath,SessionToken} = JobState,
-            NewQueue = queue:in({AssignmentID,FilePath,SessionToken}),
+            NewQueue = queue:in({AssignmentID,FilePath,SessionToken},Queue),
+            master_server:update_handin_job(SessionToken,queued,MasterNode),
             {noreply,{NewQueue,Assignments,CurrentJobs,MasterNode}}
     end;
 
@@ -95,15 +97,10 @@ handle_call(
     case dict:find(AssignmentID,Assignments) of
         {ok,AssignDict} ->
             spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size) end),
-            {ok,{ok,queued},{Queue, Assignments, CurrentJobs, MasterNode}};
+            {ok,{ok,received},{Queue, Assignments, CurrentJobs, MasterNode}};
         error ->
             {ok,{error,noassign},{Queue, Assignments, CurrentJobs, MasterNode}}
     end;
-
-
-
-
-
 
 handle_call(
   {finish_job,{SessionToken,Res}},
@@ -112,6 +109,8 @@ handle_call(
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
+    {FilePath, FsmPID} = dict:fetch(SessionToken,CurrentJobs),
+    helper_functions:delete_dir("./Handins/" ++ FilePath),
     NewCurrentJobs = dict:erase(SessionToken,CurrentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},MasterNode),
     {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};
@@ -163,7 +162,7 @@ queue_handin(AssignDict,DirID,Files,SessionToken,NumJobs) ->
             FsmPID = correct_fsm:start_link({node()}),
             correct_fsm:start_job(FsmPID,AssignDict,DirID,SessionToken),
             Status = running,
-            Args = {FsmPID,SessionToken};
+            Args = {FsmPID,DirID,SessionToken};
         true ->
             Status = queue,
             AssignmentID = dict:fetch("assignmentid",AssignDict),

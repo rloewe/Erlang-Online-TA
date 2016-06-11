@@ -1,6 +1,6 @@
 -module (helper_functions).
 
--export ([create_dirs/1,save_files/2,gen_directory_string/1]).
+-export ([create_dirs/1,save_files/2,gen_directory_string/1,delete_dir/1]).
 
 
 create_dirs([]) ->
@@ -12,6 +12,23 @@ create_dirs([Path | Paths]) ->
         E ->
             {error,E}
     end.
+
+delete_dir(Dir) ->
+    case file:list_dir(Dir) of
+        {ok,Files} ->
+            delete_files(Files),
+            file:del_dir(Dir),
+            ok;
+        _ ->
+            ok
+    end.
+
+delete_files([]) ->
+    ok;
+delete_files([Path | Paths]) ->
+    file:delete(Path),
+    delete_files(Paths).
+
 
 
 save_files([],_) ->

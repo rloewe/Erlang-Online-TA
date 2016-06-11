@@ -103,29 +103,28 @@ handle_call({add_node,Node,Specs}, _From, State) ->
             spawn(fun() -> send_files_to_node(Node,
                                               State#masterState.assignments,
                                               State#masterState.modules)
-                            end),
-            NewNodes = State#masterState.nodes;
+                            end);
         false ->
-            NewNodes = State#masterState.nodes;
+            nothing;
         ignored ->
             %Is a case of connect node, added with dummy for now
-            NewNodes = State#masterState.nodes
+            nothing
     end,
-    {reply, ok, State#masterState{nodes=NewNodes}};
+    {reply, ok, State};
 
 handle_call({send_handin,AssignmentID,Files},_From, State) ->
     case dict:is_key(AssignmentID,State#masterState.assignments) of
         true ->
             %TODO some datastructure where searching in either nodes or session key
-            %Random distribution of work over nodes
             NumberOfNodes = length(nodes()),
             if
                 NumberOfNodes > 0 ->
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    DirID = helper_functions:gen_directory_string(8),
+                    DirID = create_handin_dirpath(8),
                     spawn(fun() -> helper_functions:save_files(Files,"./Handins/" ++ DirID) end),
+                    %TODO Handle status callback if assignment is not on node server
                     Status = queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken),
                     NewNodes = dict:append(Node,SessionToken,State#masterState.sessions),
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status,DirID},State#masterState.sessions),
@@ -179,16 +178,19 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
     case dict:is_key(SessionToken,State#masterState.sessions) of
         true ->
             case NewStatus of
-                running ->
-                    NewSessions = dict:store(SessionToken,NewStatus,State#masterState.sessions),
-                    {reply, {ok,updated}, State#masterState{sessions=NewSessions}};
                 {finished,ReturnVal,Node} ->
                     %TODO magic with files and return call to end user
+
                     io:format("Master server job finished ~p \n",[ReturnVal]),
+                    {_,_,DirID} = dict:fetch(SessionToken,State#masterState.sessions),
+                    helper_functions:delete_dir("./Handins/" ++ DirID),
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
                     RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
-                    {reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}}
+                    {reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
+                Status ->
+                    NewSessions = dict:store(SessionToken,Status,State#masterState.sessions),
+                    {reply, {ok,updated}, State#masterState{sessions=NewSessions}}
             end;
         false ->
             {reply, {error,nosess}, State}
@@ -301,3 +303,13 @@ monitor_loop() ->
             nothing
     end,
     monitor_loop().
+
+create_handin_dirpath(Size) ->
+    DirID = helper_functions:gen_directory_string(8),
+    %Check if dir already exist, create new ID if so
+    case file:list_dir("./Handins/" ++ DirID) of
+        {ok, _} ->
+            create_handin_dirpath(Size);
+        _ ->
+            DirID
+    end.
