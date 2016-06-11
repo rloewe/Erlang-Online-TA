@@ -107,9 +107,9 @@ handle_call(
     case dict:find(AssignmentID,State#nodeState.assignments) of
         {ok,AssignDict} ->
             spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size,State#nodeState.modules) end),
-            {ok,{ok,received},State};
+            {reply,{ok,received},State};
         error ->
-            {ok,{error,noassign},State}
+            {reply,{error,noassign},State}
     end;
 
 handle_call(
