@@ -85,7 +85,7 @@ doLoop(State) ->
                 error:disk -> From ! {error, "Assignment config error: disk"}
             end;
         X ->
-            io:format("Error: got ~p\n", [X]).
+            io:format("Error: got ~p\n", [X])
     end,
     doLoop(State).
 
