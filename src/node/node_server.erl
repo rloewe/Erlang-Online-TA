@@ -106,7 +106,7 @@ handle_call(
     Size = dict:size(State#nodeState.currentJobs),
     case dict:find(AssignmentID,State#nodeState.assignments) of
         {ok,AssignDict} ->
-            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size) end),
+            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size,State#nodeState.modules) end),
             {ok,{ok,received},State};
         error ->
             {ok,{error,noassign},State}
@@ -171,7 +171,7 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
-queue_handin(AssignDict,DirID,Files,SessionToken,NumJobs) ->
+queue_handin(AssignDict,DirID,Files,SessionToken,NumJobs,Modules) ->
     helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
     if
         NumJobs < 2 ->
@@ -179,7 +179,7 @@ queue_handin(AssignDict,DirID,Files,SessionToken,NumJobs) ->
             %TODO Fix MAGIC CONSTANT!
             FsmPID = correct_fsm:start_link({node()}),
             ModuleName = dict:fetch("module",AssignDict),
-            Module = dict:fetch(ModuleName,State#nodeState.modules),
+            Module = dict:fetch(ModuleName,Modules),
             correct_fsm:start_job(FsmPID,Module,"./Handins/" ++ DirID ++ "/",SessionToken),
             Status = running,
             Args = {FsmPID,DirID,SessionToken};
