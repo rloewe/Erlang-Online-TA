@@ -67,6 +67,7 @@ doLoop(State) ->
                     exit(done)
             end;
         {run, AssignmentDir, From} ->
+            io:format("Run run run"),
             Mod = State#state.module,
             try
                 case Mod:run(State#state.config, AssignmentDir) of
@@ -82,7 +83,9 @@ doLoop(State) ->
             catch
                 error:network -> From ! {error, "Assignment config error: network"};
                 error:disk -> From ! {error, "Assignment config error: disk"}
-            end
+            end;
+        X ->
+            io:format("Error: got ~p\n", [X]).
     end,
     doLoop(State).
 
