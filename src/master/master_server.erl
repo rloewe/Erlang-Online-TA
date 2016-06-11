@@ -277,7 +277,8 @@ send_files_to_node(Node,Assignments,Modules) ->
     AssignmentList = dict:to_list(Assignments),
     ModuleList = dict:to_list(Modules),
     AssignSendFun = fun({AssignmentID,AssignDict}) ->
-        Paths = file:list_dir("./Assignments/" ++ AssignmentID),
+        {ok,Paths} = file:list_dir("./Assignments/" ++ AssignmentID ++ "/"),
+        io:format("~p,~p \n",["./Assignments/" ++ AssignmentID ++ "/",Paths]),
         Files = load_files_from_dir(Paths,[]),
         node_server:add_assignment(Node,AssignmentID,AssignDict,Files)
     end,
@@ -293,6 +294,7 @@ send_files_to_node(Node,Assignments,Modules) ->
 load_files_from_dir([],Files) ->
     Files;
 load_files_from_dir([Path | Paths], Files)->
+    io:format
     case file:read_file("./Assignments/" ++ Path) of
         {ok, Binary} ->
             load_files_from_dir(Paths,[{Path,Binary} | Paths]);
