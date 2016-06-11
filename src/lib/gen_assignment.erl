@@ -69,6 +69,7 @@ doLoop(State) ->
         {run, AssignmentDir, From} ->
             io:format("Run run run"),
             Mod = State#state.module,
+            io:format("Run run run"),
             try
                 case Mod:run(State#state.config, AssignmentDir) of
                     {error, Msg} ->
@@ -78,11 +79,13 @@ doLoop(State) ->
                         io:format("hello? I run cmd"),
                         io:format("~p", [Cmd]),
                         Pid = spawn(fun () -> getOutput(From, 10000) end),
-                        exec:run(Cmd, [{stdout,Pid},{stderr,Pid}])
+                        exec:run(Cmd, [{stdout,Pid},{stderr,Pid}]);
+                    X ->
+                        job_done(From, {error, "Wat"})
                 end
             catch
-                error:network -> From ! {error, "Assignment config error: network"};
-                error:disk -> From ! {error, "Assignment config error: disk"}
+                error:network -> job_done(From, {error, "Assignment config error: network"});
+                error:disk -> job_done(From, {error, "Assignment config error: disk"})
             end;
         X ->
             io:format("Error: got ~p\n", [X])
