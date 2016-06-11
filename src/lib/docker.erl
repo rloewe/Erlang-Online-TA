@@ -26,7 +26,7 @@ teardown(Config, WorkingDir) ->
 
 run(Config, AssignmentDir) ->
     {ok, Id} = dict:find("assignmentid", Config),
-    case dict:find("network") of
+    case dict:find("network", Config) of
         {ok, enabled} ->
             Net = "";
         {ok, disabled} ->
@@ -35,7 +35,7 @@ run(Config, AssignmentDir) ->
             Net = none,
             erlang:error(network)
     end,
-    case dict:find("io") of
+    case dict:find("disk", Config) of
         {ok, enabled} ->
             Disk = "";
         {ok, disabled} ->
