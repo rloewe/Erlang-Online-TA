@@ -131,7 +131,7 @@ handle_call(
     Path = "./Assignments/"++AssignmentID ++ "/",
     case file:make_dir(Path) of
       Pat when Pat =:= ok; Pat =:= {error,eexist} ->
-          {ok, ModuleName} = dict:fetch("module", AssignmentDict),
+          ModuleName = dict:fetch("module", AssignmentDict),
           case dict:find(ModuleName, State#nodeState.modules) of
               {ok, Module} ->
                   {ok, Pid} = gen_assignment:build(Module, AssignmentDict, Path, Files),
