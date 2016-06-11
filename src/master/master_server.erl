@@ -56,6 +56,7 @@ deregister_socket(Pid, MasterNode) ->
 init([]) ->
     case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
         ok ->
+            spawn(fun() -> start_monitor() end),
             {ok, #masterState{
                 nodes = dict:new(),
                 sessions = dict:new(),
@@ -70,13 +71,20 @@ init([]) ->
 
 
 handle_cast({nodedown,Node}, State) ->
-    %Check if node got back online, might be useless
-    case lists:member(Node,nodes()) of
-        true ->
-            nothing;
-        false ->
-            Jobs =
-            nothing
+    case dict:find(Node,State#masterState.nodes) of
+        {ok,Jobs} ->
+            fun(Session) ->
+                case dict:find(Session,State#masterState.sessions) of
+                    {ok,{AssignID,_,Path}} ->
+                        Files = load_files_from_dir(Path,[]),
+                        Node = lists:nth(random:uniform(length(nodes())),nodes());
+
+                    error ->
+                        none
+                end
+            end;
+            error ->
+                nothing
     end,
     {noreply, State};
 
@@ -92,7 +100,6 @@ handle_call({add_node,Node,Specs}, _From, State) ->
                                               State#masterState.assignments,
                                               State#masterState.modules)
                             end),
-            spawn(fun() -> monitor(Node) end),
             NewNodes = State#masterState.nodes;
         false ->
             NewNodes = State#masterState.nodes;
@@ -103,7 +110,6 @@ handle_call({add_node,Node,Specs}, _From, State) ->
     {reply, ok, State#masterState{nodes=NewNodes}};
 
 handle_call({send_handin,AssignmentID,Files},_From, State) ->
-    %TODO Make subdir for each handin
     case dict:is_key(AssignmentID,State#masterState.assignments) of
         true ->
             %TODO some datastructure where searching in either nodes or session key
@@ -114,10 +120,11 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    spawn(fun() -> helper_functions:save_files(Files,"./Handins/") end),
+                    Path = "./Handins/" ++ helper_functions:gen_directory_string(8),
+                    spawn(fun() -> helper_functions:save_files(Files,Path) end),
                     Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
                     NewNodes = dict:append(Node,SessionToken,State#masterState.sessions),
-                    NewSessions = dict:store(SessionToken,{AssignmentID,Status},State#masterState.sessions),
+                    NewSessions = dict:store(SessionToken,{AssignmentID,Status,Path},State#masterState.sessions),
                     {reply,{ok,{SessionToken,Status}},State#masterState{nodes = NewNodes, sessions=NewSessions}};
                 true ->
                     io:format("Could not start session, no nodes available"),
@@ -266,24 +273,25 @@ send_files_to_node(Node,Assignments,Modules) ->
     lists:map(ModuleSendFun,ModuleList).
 
 
+%TODO add error handling
 load_files_from_dir([],Files) ->
     Files;
 load_files_from_dir([Path | Paths], Files)->
     case file:read_file("./Assignments/" ++ Path) of
         {ok, Binary} ->
             load_files_from_dir(Paths,[{Path,Binary} | Paths]);
-        enomem ->
-            %This case might be interesting
-            load_files_from_dir(Paths,Files);
         _ ->
             load_files_from_dir(Paths,Files)
     end.
 
+start_monitor() ->
+    net_kernel:monitor_nodes(true),
+    monitor_loop().
+
 %Simple monitor implementation
-monitor(Node) ->
-    monitor_node(Node,true),
+monitor_loop() ->
     receive
         {E,Node} ->
-            gen_server:cast(node(),{nodedown,Node}),
-            io:format("Node ~p went down for reason: ~p \n",[Node,E])
-    end.
+            io:format("Node ~p said : ~p \n",[Node,E])
+    end,
+    monitor_loop().
