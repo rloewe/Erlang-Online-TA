@@ -43,6 +43,8 @@ add_assignment(Node,AssignmentID,AssignmentDict,Files) ->
 add_module(Node,ModuleName,ModuleBinary) ->
     gen_server:call({?MODULE,Node},{add_module,ModuleName,ModuleBinary}).
 
+-record(nodeState, {queue, assignments, currentJobs, masterNode, modules}).
+
 
 init([MasterNode,Specs]) ->
     %master:connect_to(node()),
@@ -54,7 +56,14 @@ init([MasterNode,Specs]) ->
             %Supervisor = supervisor:
             case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
                 ok ->
-                    {ok, {Queue,Assignments,CurrentJobs,MasterNode}};
+                    {ok, #nodeState{
+                            queue = Queue,
+                            assignments = Assignments,
+                            currentJobs = CurrentJobs,
+                            masterNode = MasterNode,
+                            modules = dict:new()
+                           }
+                    };
                 {error,E} ->
                     {stop,{error,E}}
             end;
@@ -67,18 +76,18 @@ init([MasterNode,Specs]) ->
 
 handle_cast(
   {update_handin_status,Status,JobState},
-  {Queue, Assignments, CurrentJobs, MasterNode}) ->
+  State) ->
     case Status of
         running ->
             {FsmPID,FilePath,SessionToken} = JobState,
-            NewCurrentJobs = dict:store(SessionToken,{FilePath,FsmPID},CurrentJobs),
+            NewCurrentJobs = dict:store(SessionToken,FsmPID,State#nodeState.currentJobs),
             master_server:update_handin_job(SessionToken,running,MasterNode),
             {noreply,{Queue,Assignments,NewCurrentJobs,MasterNode}};
         queue ->
             {AssignmentID,FilePath,SessionToken} = JobState,
-            NewQueue = queue:in({AssignmentID,FilePath,SessionToken},Queue),
+            NewQueue = queue:in({AssignmentID,FilePath,SessionToken},State#nodeState.queue),
             master_server:update_handin_job(SessionToken,queued,MasterNode),
-            {noreply,{NewQueue,Assignments,CurrentJobs,MasterNode}}
+            {noreply,State#nodeState{queue = NewQueue}}
     end;
 
 
@@ -89,53 +98,60 @@ handle_cast(_Message, State) ->
 handle_call(
   {queue_job, AssignmentID, DirID, Files, SessionToken},
   _From,
-  {Queue, Assignments, CurrentJobs, MasterNode}
+  State
  ) ->
     %TODO handle assignment id
     %TODO fix magic constant
-    Size = dict:size(CurrentJobs),
-    case dict:find(AssignmentID,Assignments) of
+    Size = dict:size(State#nodeState.currentJobs),
+    case dict:find(AssignmentID,State#nodeState.assignments) of
         {ok,AssignDict} ->
             spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size) end),
-            {ok,{ok,received},{Queue, Assignments, CurrentJobs, MasterNode}};
+            {ok,{ok,received},State};
         error ->
-            {ok,{error,noassign},{Queue, Assignments, CurrentJobs, MasterNode}}
+            {ok,{error,noassign},State}
     end;
 
 handle_call(
   {finish_job,{SessionToken,Res}},
   _From,
-  {Queue, Assignments, CurrentJobs, MasterNode}) ->
+  State) ->
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
     {FilePath, FsmPID} = dict:fetch(SessionToken,CurrentJobs),
     helper_functions:delete_dir("./Handins/" ++ FilePath),
-    NewCurrentJobs = dict:erase(SessionToken,CurrentJobs),
-    master_server:update_handin_job(SessionToken,{finished,Res,node()},MasterNode),
-    {reply, ok, {Queue, Assignments, NewCurrentJobs, MasterNode}};
+    NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
+    master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
+    {reply, ok, State#nodeState{currentJobs = NewCurrentJobs}};
 
 handle_call(
   {add_assignment,AssignmentID,AssignmentDict,Files}, _From,
-  {Queue, Assignments, CurrentJobs, MasterNode}) ->
-    %TODO Compile build image of module
+  State) ->
     Path = "./Assignments/"++AssignmentID ++ "/",
     case file:make_dir(Path) of
       Pat when Pat =:= ok; Pat =:= {error,eexist} ->
-          helper_functions:save_files(Files,Path),
-          NewAssignments = dict:store(AssignmentID,AssignmentDict,Assignments),
-          {reply, ok, {Queue,NewAssignments,CurrentJobs,MasterNode}};
+          {ok, ModuleName} = dict:fetch("module", AssignmentDict),
+          case dict:find(ModuleName, State#nodeState.modules) of
+              {ok, Module} ->
+                  {ok, Pid} = gen_assignment:build(Module, AssignmentDict, Path, Files),
+                  NewAssignments = dict:store(AssignmentID,{Pid, AssignmentDict},State#nodeState.assignments),
+                  {reply, ok, State#nodeState{assignments = NewAssignments}};
+              error ->
+                  {reply, {error, "Module does not exist"}, State}
+          end;
       E ->
-        {reply, {error,E},{Queue,Assignments,CurrentJobs,MasterNode}}
+        {reply, {error,E},State}
     end;
 
 handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
-    Path = "./Modules/" ++ atom_to_list(ModuleName),
+    ModName = atom_to_list(ModuleName),
+    Path = "./Modules/" ++ ModName,
     case file:write_file(Path++ ".beam",ModuleBinary) of
         ok ->
             case code:load_abs(Path) of
                 {module,Module} ->
-                    {reply,ok,State};
+                    NewModules = dict:store(ModName, Module, State#nodeState.modules),
+                    {reply,ok,State#nodeState{modules = NewModules}};
                 {error,Reason} ->
                     {reply,{error,Reason},State}
             end;
