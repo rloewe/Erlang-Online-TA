@@ -67,18 +67,15 @@ doLoop(State) ->
                     exit(done)
             end;
         {run, AssignmentDir, From} ->
-            io:format("Run run run"),
             Mod = State#state.module,
-            io:format("Run run run"),
             try
                 case Mod:run(State#state.config, AssignmentDir) of
                     {error, Msg} ->
                         io:format("~p", [Msg]),
                         From ! {error, Msg};
-                    {ok, Cmd} ->
+                    {ok, Cmd, StartUpTime} ->
                         io:format("hello? I run cmd"),
-                        io:format("~p", [Cmd]),
-                        Pid = spawn(fun () -> getOutput(From, 10000) end),
+                        Pid = spawn(fun () -> getOutput(From, StartUpTime) end),
                         exec:run(Cmd, [{stdout,Pid},{stderr,Pid}]);
                     X ->
                         io:format("Run gave: ~p\n", [X]),
