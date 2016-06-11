@@ -74,6 +74,7 @@ doLoop(State) ->
                         io:format("~p", [Msg]),
                         From ! {error, Msg};
                     {ok, Cmd} ->
+                        io:format("hello? I run cmd"),
                         io:format("~p", [Cmd]),
                         Pid = spawn(fun () -> getOutput(From, 10000) end),
                         exec:run(Cmd, [{stdout,Pid},{stderr,Pid}])
@@ -87,6 +88,7 @@ doLoop(State) ->
 
 getOutput(From, Timeout) ->
     %TODO: fix timeout
+    io:format("hello? I is getOutput"),
     receive
         {_,_,Msg} ->
             job_done(From, {ok, Msg})
