@@ -35,7 +35,9 @@ delete_files([Path | Paths],Dir) ->
 save_files([],_) ->
     ok;
 save_files([{FileName,File} | Rest ],Path) ->
-    file:write_file(Path++FileName,File),
+    RealPath = Path ++ FileName,
+    io:format("~p\n",[RealPath]),
+    io:format("~p\n",[file:write_file(RealPath,File)]),
     save_files(Rest,Path).
 
 
