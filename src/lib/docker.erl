@@ -13,10 +13,10 @@ setup(Config, WorkingDir) ->
       "RUN apt-get update && apt-get install -y " ++ string:join(Libs, " ") ++ "\n" ++
       "RUN useradd -m -d /home/correction correction\n" ++
       "COPY . /home/correction\n" ++
-      "RUN chown correction:correction -R /home/correction" ++
+      "RUN chown correction:correction -R /home/correction\n" ++
       "USER correction\n" ++
       "WORKDIR /home/correction\n" ++
-      "RUN chmod +x " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " ") ++
+      "RUN chmod +x " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " ") ++ "\n" ++
       "CMD " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " && "))
      ),
     {doCmd, "docker build -t " ++ Id ++ " " ++ WorkingDir}.
