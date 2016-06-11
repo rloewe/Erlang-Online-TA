@@ -81,6 +81,7 @@ doLoop(State) ->
                         Pid = spawn(fun () -> getOutput(From, 10000) end),
                         exec:run(Cmd, [{stdout,Pid},{stderr,Pid}]);
                     X ->
+                        io:format("Run gave: ~p\n", [X]),
                         job_done(From, {error, "Wat"})
                 end
             catch
