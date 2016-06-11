@@ -152,8 +152,7 @@ handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
         ok ->
             case code:load_abs(Path) of
                 {module,Module} ->
-                    io:format("~p\n",[ModName]),
-                    NewModules = dict:store(ModName, Module, State#nodeState.modules),
+                    NewModules = dict:store(ModuleName, Module, State#nodeState.modules),
                     {reply,ok,State#nodeState{modules = NewModules}};
                 {error,Reason} ->
                     {reply,{error,Reason},State}
