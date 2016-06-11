@@ -16,18 +16,19 @@ create_dirs([Path | Paths]) ->
 delete_dir(Dir) ->
     case file:list_dir(Dir) of
         {ok,Files} ->
-            delete_files(Files),
+            delete_files(Files,Dir++"/"),
             file:del_dir(Dir),
             ok;
         _ ->
             ok
     end.
 
-delete_files([]) ->
+delete_files([],_) ->
     ok;
-delete_files([Path | Paths]) ->
-    file:delete(Path),
-    delete_files(Paths).
+delete_files([Path | Paths],Dir) ->
+    io:format("Path ~p \n",[Path]),
+    io:format("~p\n",[file:delete(Dir++Path)]),
+    delete_files(Paths,Dir).
 
 
 
