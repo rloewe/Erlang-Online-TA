@@ -179,7 +179,8 @@ queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,Modules) ->
             %TODO do stuff with FSM
             %TODO Fix MAGIC CONSTANT!
             {ok, FsmPID} = correct_fsm:start_link({node()}),
-            correct_fsm:start_job(FsmPID,Module,"./Handins/" ++ DirID ++ "/",SessionToken),
+            {ok, Pwd} = file:get_cwd(),
+            correct_fsm:start_job(FsmPID,Module, Pwd ++ "/Handins/" ++ DirID ++ "/",SessionToken),
             Status = running,
             Args = {FsmPID,DirID,SessionToken};
         true ->
