@@ -134,6 +134,7 @@ handle_call(
           ModuleName = dict:fetch("module", AssignmentDict),
           case dict:find(ModuleName, State#nodeState.modules) of
               {ok, Module} ->
+                  helper_functions:save_files(Files,Path),
                   {ok, Pid} = gen_assignment:build(Module, AssignmentDict, Path, Files),
                   NewAssignments = dict:store(AssignmentID,{Pid, AssignmentDict},State#nodeState.assignments),
                   {reply, ok, State#nodeState{assignments = NewAssignments}};
