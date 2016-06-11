@@ -1,6 +1,6 @@
 -module (test).
 
--export ([test/0]).
+-export ([test/0,run/0]).
 
 test() ->
     Master = node(),
@@ -22,3 +22,7 @@ load_files([],Files) ->
 load_files([Path | Paths], Files) ->
     {ok, Binary} = file:read_file(Path),
     load_files(Paths,[{Path,Binary} | Files]).
+
+run() ->
+    {ok,Binary} = file:read_file("/root/assignment/handin.py"),
+    master_server:send_handin("hello",[{"wat.py",Binary}],node()).
