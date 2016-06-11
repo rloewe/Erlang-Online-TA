@@ -35,7 +35,7 @@ delete_files([Path | Paths],Dir) ->
 save_files([],_) ->
     ok;
 save_files([{FileName,File} | Rest ],Path) ->
-    RealPath = Path ++ FileName,
+    RealPath = Path ++ strip_file_name(FileName),
     io:format("~p\n",[RealPath]),
     io:format("~p\n",[file:write_file(RealPath,File)]),
     save_files(Rest,Path).
@@ -47,3 +47,6 @@ gen_directory_string(Size) ->
     FoldFun = fun(_,Accum) ->
         [lists:nth(random:uniform(NumberOfChars),Allowed)] ++ Accum end,
     lists:foldl(FoldFun,[],lists:seq(1,Size)).
+
+strip_file_name(FileName) ->
+    lists:ĺast(string:tokens(FileName,"/"))
