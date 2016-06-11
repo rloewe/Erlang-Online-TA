@@ -12,6 +12,7 @@ setup(Config, WorkingDir) ->
       list_to_binary("FROM ubuntu\n" ++
       "RUN apt-get update && apt-get install -y " ++ string:join(Libs, " ") ++ "\n" ++
       "RUN useradd -m -d /home/correction correction\n" ++
+      "RUN chown correction:correction -R /home/correction" ++
       "COPY . /home/correction\n" ++
       "USER correction\n" ++
       "WORKDIR /home/correction\n" ++
