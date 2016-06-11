@@ -42,7 +42,7 @@ init(Mod, Config, Dir, Files) ->
                     doho
             after 5000 ->
                 flush()
-            end
+            end,
             doLoop(#state{
                       module = Mod,
                       config = Config,
