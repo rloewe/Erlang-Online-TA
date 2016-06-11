@@ -36,7 +36,7 @@ init(Mod, Config, Dir, Files) ->
             io:format("~p", [Msg]);
         {doCmd, Cmd} ->
             io:format("Building"),
-            exec:run(Cmd),
+            exec:run(Cmd,[]),
             doLoop(#state{
                       module = Mod,
                       config = Config,
@@ -61,7 +61,7 @@ doLoop(State) ->
                     io:format("~p", [Msg]),
                     From ! {error, Msg};
                 {doCmd, Cmd} ->
-                    exec:run(Cmd);
+                    exec:run(Cmd,[]);
                 done ->
                     From ! ok,
                     exit(done)
