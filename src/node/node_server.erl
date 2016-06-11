@@ -172,13 +172,15 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
 queue_handin(AssignDict,DirID,Files,SessionToken,NumJobs) ->
-    helper_functions:save_files(Files,"./Handins/" ++ DirID),
+    helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
     if
         NumJobs < 2 ->
             %TODO do stuff with FSM
             %TODO Fix MAGIC CONSTANT!
             FsmPID = correct_fsm:start_link({node()}),
-            correct_fsm:start_job(FsmPID,AssignDict,DirID,SessionToken),
+            ModuleName = dict:fetch("module",AssignDict),
+            Module = dict:fetch(ModuleName,State#nodeState.modules),
+            correct_fsm:start_job(FsmPID,Module,"./Handins/" ++ DirID ++ "/",SessionToken),
             Status = running,
             Args = {FsmPID,DirID,SessionToken};
         true ->

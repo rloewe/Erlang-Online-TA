@@ -36,13 +36,7 @@ init(Mod, Config, Dir, Files) ->
             io:format("~p", [Msg]);
         {doCmd, Cmd} ->
             io:format("Building"),
-            exec:run(Cmd,[{stderr,self()},{stdout,self()}]),
-            receive
-                hej ->
-                    doho
-            after 5000 ->
-                c:flush()
-            end,
+            exec:run(Cmd),
             doLoop(#state{
                       module = Mod,
                       config = Config,
