@@ -49,4 +49,4 @@ gen_directory_string(Size) ->
     lists:foldl(FoldFun,[],lists:seq(1,Size)).
 
 strip_file_name(FileName) ->
-    lists:ĺast(string:tokens(FileName,"/"))
+    lists:last(string:tokens(FileName,"/")).
