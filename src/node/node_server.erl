@@ -77,12 +77,13 @@ init([MasterNode,Specs]) ->
 handle_cast(
   {update_handin_status,Status,JobState},
   State) ->
+    MasterNode = State#nodeState.masterNode,
     case Status of
         running ->
             {FsmPID,FilePath,SessionToken} = JobState,
             NewCurrentJobs = dict:store(SessionToken,FsmPID,State#nodeState.currentJobs),
             master_server:update_handin_job(SessionToken,running,MasterNode),
-            {noreply,{Queue,Assignments,NewCurrentJobs,MasterNode}};
+            {noreply,State#nodeState{currentJobs = NewCurrentJobs}};
         queue ->
             {AssignmentID,FilePath,SessionToken} = JobState,
             NewQueue = queue:in({AssignmentID,FilePath,SessionToken},State#nodeState.queue),
@@ -118,7 +119,7 @@ handle_call(
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
-    {FilePath, FsmPID} = dict:fetch(SessionToken,CurrentJobs),
+    {FilePath, FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
     helper_functions:delete_dir("./Handins/" ++ FilePath),
     NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
