@@ -173,6 +173,7 @@ code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
 queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,Modules) ->
+    file:make_dir("./Handins/" ++ DirID),
     helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
     if
         NumJobs < 2 ->
