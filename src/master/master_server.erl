@@ -200,7 +200,7 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
                     {reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
                 Status ->
-                    NewSessions = dict:update(SessionToken,fun ({X, _, Y} -> {X, Status, Y} end,State#masterState.sessions),
+                    NewSessions = dict:update(SessionToken,fun ({X, _, Y}) -> {X, Status, Y} end,State#masterState.sessions),
                     {reply, {ok,updated}, State#masterState{sessions=NewSessions}}
             end;
         false ->
