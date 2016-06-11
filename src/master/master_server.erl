@@ -56,7 +56,7 @@ deregister_socket(Pid, MasterNode) ->
 init([]) ->
     case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
         ok ->
-            spawn(fun() -> monitor() end),
+            spawn(fun() -> start_monitor() end),
             {ok, #masterState{
                 nodes = dict:new(),
                 sessions = dict:new(),
@@ -292,6 +292,6 @@ start_monitor() ->
 monitor_loop() ->
     receive
         {E,Node} ->
-            io:format("Node ~p said : ~p \n",[Node,E]),
+            io:format("Node ~p said : ~p \n",[Node,E])
     end,
     monitor_loop().
