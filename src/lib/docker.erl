@@ -16,6 +16,7 @@ setup(Config, WorkingDir) ->
       "COPY . /home/correction\n" ++
       "USER correction\n" ++
       "WORKDIR /home/correction\n" ++
+      "RUN chmod +x " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " ") ++
       "CMD " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " && "))
      ),
     {doCmd, "docker build -t " ++ Id ++ " " ++ WorkingDir}.
