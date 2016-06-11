@@ -79,8 +79,8 @@ doLoop(State) ->
                         exec:run(Cmd, [{stdout,Pid},{stderr,Pid}])
                 end
             catch
-                error:network -> {error, "Assignment config error: network"};
-                error:disk -> {error, "Assignment config error: io"}
+                error:network -> From ! {error, "Assignment config error: network"};
+                error:disk -> From ! {error, "Assignment config error: disk"}
             end
     end,
     doLoop(State).
