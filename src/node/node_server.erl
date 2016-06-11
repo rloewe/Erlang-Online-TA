@@ -3,7 +3,7 @@
 -import (master_server, [connect_to/3]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1, queue_handin_job/4,finish_handin_job/3,add_assignment/4,add_module/3]).
+-export([start/1, queue_handin_job/5,finish_handin_job/3,add_assignment/4,add_module/3]).
 
 
 % API call to start the node server, takes a path to a node server config file as argument,
@@ -27,8 +27,8 @@ start(Path) ->
 
 %API call for queueing a new job on a node server, should be called from the
 %master server. Returns started or queued depending on if the job is started.
-queue_handin_job(Node, AssignmentID, Files, SessionToken) ->
-    gen_server:call({?MODULE, Node}, {queue_job, AssignmentID, Files, SessionToken}).
+queue_handin_job(Node, AssignmentID, DirID, Files, SessionToken) ->
+    gen_server:call({?MODULE, Node}, {queue_job, AssignmentID, DirID, Files, SessionToken}).
 
 %API call for finishing an assignment on a node server, should be called from the
 %FSM assosiated to the job. Returns ok
@@ -64,38 +64,45 @@ init([MasterNode,Specs]) ->
     end.
 
 
+
+handle_cast(
+  {update_handin_status,Status,JobState},
+  {Queue, Assignments, CurrentJobs, MasterNode}) ->
+    case Status of
+        running ->
+            {FsmPID,SessionToken} = JobState,
+            NewCurrentJobs = dict:store(SessionToken,FsmPID,CurrentJobs),
+            {noreply,{Queue,Assignments,NewCurrentJobs,MasterNode}};
+        queue ->
+            {AssignmentID,FilePath,SessionToken} = JobState,
+            NewQueue = queue:in({AssignmentID,FilePath,SessionToken}),
+            {noreply,{NewQueue,Assignments,CurrentJobs,MasterNode}}
+    end;
+
+
 handle_cast(_Message, State) ->
     {noreply, State}.
 
 
 handle_call(
-  {queue_job, AssignmentID, Files, SessionToken},
+  {queue_job, AssignmentID, DirID, Files, SessionToken},
   _From,
   {Queue, Assignments, CurrentJobs, MasterNode}
  ) ->
     %TODO handle assignment id
     %TODO fix magic constant
-    %TODO move file handling to seperate thread
-    %TODO Add subfolders for each handin
-    Path = "./Handins/",
-    helper_functions:save_files(Files,Path),
     Size = dict:size(CurrentJobs),
-    if
-        Size < 2 ->
-            case start_handin(AssignmentID,Assignments,Path,SessionToken) of
-                {ok,FsmPID} ->
-                    NewCurrentJobs = dict:store(SessionToken,FsmPID,CurrentJobs),
-                    io:format("Queue: ~p ~nCurrentJobs: ~p", [Queue, NewCurrentJobs]),
-                    {reply, started, {Queue, Assignments, NewCurrentJobs, MasterNode}};
-                {error,noassign} ->
-                    %TODO handle getting assignment
-                    {reply,notstarted,{Queue,Assignments,CurrentJobs,MasterNode}}
-                    end;
-        true ->
-            NewQueue = queue:in({AssignmentID,Path,SessionToken},Queue),
-            io:format("Queue: ~p ~nCurrentJobs: ~p", [NewQueue, CurrentJobs]),
-            {reply, queued, {NewQueue, Assignments, CurrentJobs, MasterNode}}
+    case dict:find(AssignmentID,Assignments) of
+        {ok,AssignDict} ->
+            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size) end),
+            {ok,{ok,queued},{Queue, Assignments, CurrentJobs, MasterNode}};
+        error ->
+            {ok,{error,noassign},{Queue, Assignments, CurrentJobs, MasterNode}}
     end;
+
+
+
+
 
 
 handle_call(
@@ -137,6 +144,8 @@ handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
             {reply, {error,Reason}, State}
     end;
 
+
+
 handle_call(_Message, _From, State) ->
     {reply, error, State}.
 
@@ -145,15 +154,20 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
-
-
-start_handin(AssignmentID,Assignments,FilePath,SessionToken) ->
-    case dict:find(AssignmentID,Assignments) of
-        {ok,AssignDict} ->
+queue_handin(AssignDict,DirID,Files,SessionToken,NumJobs) ->
+    helper_functions:save_files(Files,"./Handins/" ++ DirID),
+    if
+        NumJobs < 2 ->
+            %TODO do stuff with FSM
+            %TODO Fix MAGIC CONSTANT!
             FsmPID = correct_fsm:start_link({node()}),
-            correct_fsm:start_job(FsmPID,AssignDict,FilePath,SessionToken),
-            {ok,FsmPID};
-        error ->
-            %TODO Handle some call back to request from master
-            {error,noassign}
-    end.
+            correct_fsm:start_job(FsmPID,AssignDict,DirID,SessionToken),
+            Status = running,
+            Args = {FsmPID,SessionToken};
+        true ->
+            Status = queue,
+            AssignmentID = dict:fetch("assignmentid",AssignDict),
+            Args = {AssignmentID,DirID,SessionToken}
+    end,
+    gen_server:cast({?MODULE,node()},{update_handin_status,Status,Args}).
+

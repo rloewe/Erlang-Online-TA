@@ -1,7 +1,7 @@
 -module(master_server).
 -behaviour(gen_server).
 
--import (node_server, [queue_handin_job/4]).
+-import (node_server, [queue_handin_job/5]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/3,get_handin_status/2,send_handin/3,
@@ -70,23 +70,27 @@ init([]) ->
     end.
 
 
-handle_cast({nodedown,Node}, State) ->
-    case dict:find(Node,State#masterState.nodes) of
-        {ok,Jobs} ->
-            fun(Session) ->
-                case dict:find(Session,State#masterState.sessions) of
-                    {ok,{AssignID,_,Path}} ->
-                        Files = load_files_from_dir(Path,[]),
-                        Node = lists:nth(random:uniform(length(nodes())),nodes());
-
-                    error ->
-                        none
-                end
-            end;
-            error ->
-                nothing
-    end,
-    {noreply, State};
+% handle_cast({nodedown,Node}, State) ->
+%     case dict:find(Node,State#masterState.nodes) of
+%         {ok,Jobs} ->
+%             Nodes = nodes(),
+%             DistFun = fun(Session,Accum) ->
+%                 case dict:find(Session,State#masterState.sessions) of
+%                     {ok,{AssignID,_,Path}} ->
+%                         %TODO fix status update
+%                         Files = load_files_from_dir(Path,[]),
+%                         Node = lists:nth(random:uniform(length(Nodes),Nodes),
+%                         Status = queue_handin_job(Node,AssignID,Files,Session),
+%                         dict:append(Node,Session,Accum);
+%                     error ->
+%                         Accum
+%                 end
+%             end;
+%             %NewNodes = lists:foldl(DistFun,[],)
+%             error ->
+%                 nothing
+%     end,
+%     {noreply, State};
 
 handle_cast(_Message, State) ->
     io:format("test"),
@@ -120,11 +124,11 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     SessionToken = make_ref(),
                     io:format("Started session ~p",[SessionToken]),
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
-                    Path = "./Handins/" ++ helper_functions:gen_directory_string(8),
-                    spawn(fun() -> helper_functions:save_files(Files,Path) end),
-                    Status = queue_handin_job(Node,AssignmentID,Files,SessionToken),
+                    DirID = helper_functions:gen_directory_string(8),
+                    spawn(fun() -> helper_functions:save_files(Files,"./Handins/" ++ DirID) end),
+                    Status = queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken),
                     NewNodes = dict:append(Node,SessionToken,State#masterState.sessions),
-                    NewSessions = dict:store(SessionToken,{AssignmentID,Status,Path},State#masterState.sessions),
+                    NewSessions = dict:store(SessionToken,{AssignmentID,Status,DirID},State#masterState.sessions),
                     {reply,{ok,{SessionToken,Status}},State#masterState{nodes = NewNodes, sessions=NewSessions}};
                 true ->
                     io:format("Could not start session, no nodes available"),
@@ -291,7 +295,9 @@ start_monitor() ->
 %Simple monitor implementation
 monitor_loop() ->
     receive
-        {E,Node} ->
-            io:format("Node ~p said : ~p \n",[Node,E])
+        {nodedown,Node} ->
+            io:format("Node ~p died \n",[Node]);
+        {nodeup,Node} ->
+            nothing
     end,
     monitor_loop().
