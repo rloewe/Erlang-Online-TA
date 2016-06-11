@@ -35,7 +35,7 @@ init(Mod, Config, Dir, Files) ->
         {error, Msg} ->
             io:format("~p", [Msg]);
         {doCmd, Cmd} ->
-            exec:run(Cmd),
+            exec:run(Cmd,[{stderr,self()},{stdout,self()}]),
             doLoop(#state{
                       module = Mod,
                       config = Config,

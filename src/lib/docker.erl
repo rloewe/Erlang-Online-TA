@@ -6,11 +6,12 @@ setup(Config, WorkingDir) ->
     {ok, Id} = dict:find("assignmentid", Config),
     file:write_file(WorkingDir ++ ".dockerignore", "Dockerfile"),
     {ok, Libs} = dict:find("required_libs", Config),
+    RLibs = lists:map(fun({_,Lib}) -> Lib end,Libs),
     {ok, RunScripts} = dict:find("runorder", Config),
     file:write_file(
       WorkingDir ++ "Dockerfile",
       list_to_binary("FROM ubuntu\n" ++
-      "RUN apt-get update && apt-get install -y " ++ string:join(Libs, " ") ++ "\n" ++
+      "RUN apt-get update && apt-get install -y " ++ string:join(RLibs, " ") ++ "\n" ++
       "RUN useradd -m -d /home/correction correction\n" ++
       "COPY . /home/correction\n" ++
       "USER correction\n" ++
