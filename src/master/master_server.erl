@@ -56,7 +56,6 @@ deregister_socket(Pid, MasterNode) ->
 init([]) ->
     case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
         ok ->
-            net_kernel:monitor_nodes(true),
             spawn(fun() -> monitor() end),
             {ok, #masterState{
                 nodes = dict:new(),
@@ -285,10 +284,14 @@ load_files_from_dir([Path | Paths], Files)->
             load_files_from_dir(Paths,Files)
     end.
 
+start_monitor() ->
+    net_kernel:monitor_nodes(true),
+    monitor_loop().
+
 %Simple monitor implementation
-monitor() ->
+monitor_loop() ->
     receive
         {E,Node} ->
             io:format("Node ~p said : ~p \n",[Node,E]),
-            monitor()
-    end.
+    end,
+    monitor_loop().
