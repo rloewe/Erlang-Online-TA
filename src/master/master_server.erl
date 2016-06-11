@@ -135,7 +135,7 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     spawn(fun() -> helper_functions:save_files(Files,"./Handins/" ++ DirID) end),
                     %TODO Handle status callback if assignment is not on node server
                     Status = queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken),
-                    NewNodes = dict:append(Node,SessionToken,State#masterState.sessions),
+                    NewNodes = dict:append(Node,SessionToken,State#masterState.nodes),
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status,DirID},State#masterState.sessions),
                     {reply,{ok,{SessionToken,Status}},State#masterState{nodes = NewNodes, sessions=NewSessions}};
                 true ->
