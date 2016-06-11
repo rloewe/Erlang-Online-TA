@@ -294,7 +294,6 @@ send_files_to_node(Node,Assignments,Modules) ->
 load_files_from_dir([],Files) ->
     Files;
 load_files_from_dir([Path | Paths], Files)->
-    io:format
     case file:read_file("./Assignments/" ++ Path) of
         {ok, Binary} ->
             load_files_from_dir(Paths,[{Path,Binary} | Paths]);
