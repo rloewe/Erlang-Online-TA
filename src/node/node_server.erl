@@ -116,6 +116,7 @@ handle_call(
   {finish_job,{SessionToken,Res}},
   _From,
   State) ->
+    io:format("Got: ~p ~p", [SessionToken, Res]),
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM

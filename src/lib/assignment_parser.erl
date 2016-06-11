@@ -94,7 +94,7 @@ to_type(Entry) ->
             fun(Elem) -> {E,_} = string:to_integer(Elem), E end;
         "network" ->
             fun(Elem) -> list_to_atom(Elem) end;
-        "io" ->
+        "disk" ->
             fun(Elem) -> list_to_atom(Elem) end;
         _ ->
             fun(Elem) -> Elem end
