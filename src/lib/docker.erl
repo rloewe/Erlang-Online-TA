@@ -12,15 +12,14 @@ setup(Config, WorkingDir) ->
       list_to_binary("FROM ubuntu\n" ++
       "RUN apt-get update && apt-get install -y " ++ string:join(Libs, " ") ++ "\n" ++
       "RUN useradd -m -d /home/correction correction\n" ++
-      "RUN chown correction:correction -R /home/correction" ++
       "COPY . /home/correction\n" ++
+      "RUN chown correction:correction -R /home/correction" ++
       "USER correction\n" ++
       "WORKDIR /home/correction\n" ++
       "RUN chmod +x " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " ") ++
       "CMD " ++ string:join(lists:map(fun ({_,Elm}) -> "./" ++ Elm end, RunScripts), " && "))
      ),
     {doCmd, "docker build -t " ++ Id ++ " " ++ WorkingDir}.
-
 
 teardown(Config, WorkingDir) ->
     {ok, Id} = dict:find("assignmentid", Config),
