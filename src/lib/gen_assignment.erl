@@ -35,7 +35,6 @@ init(Mod, Config, Dir, Files) ->
         {error, Msg} ->
             io:format("~p", [Msg]);
         {doCmd, Cmd} ->
-            io:format("Building"),
             exec:run(Cmd,[]),
             doLoop(#state{
                       module = Mod,
@@ -74,7 +73,6 @@ doLoop(State) ->
                         io:format("~p", [Msg]),
                         From ! {error, Msg};
                     {ok, Cmd, StartUpTime} ->
-                        io:format("hello? I run cmd"),
                         Pid = spawn(fun () -> getOutput(From, StartUpTime) end),
                         exec:run(Cmd, [{stdout,Pid},{stderr,Pid}]);
                     X ->
@@ -92,7 +90,6 @@ doLoop(State) ->
 
 getOutput(From, Timeout) ->
     %TODO: fix timeout
-    io:format("hello? I is getOutput"),
     receive
         {_,_,Msg} ->
             job_done(From, {ok, Msg})

@@ -102,7 +102,6 @@ handle_cast({nodedown,Node}, State) ->
     end;
 
 handle_cast(_Message, State) ->
-    io:format("test"),
     {noreply, State}.
 
 
@@ -193,7 +192,6 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
                     %TODO magic with files and return call to end user
 
                     io:format("Master server job finished ~p \n",[ReturnVal]),
-                    io:format("Dict has: ~p\n", [dict:fetch(SessionToken,State#masterState.sessions)]),
                     {_,_,DirID} = dict:fetch(SessionToken,State#masterState.sessions),
                     helper_functions:delete_dir("./Handins/" ++ DirID),
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
