@@ -177,7 +177,7 @@ queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,Modules) ->
         NumJobs < 2 ->
             %TODO do stuff with FSM
             %TODO Fix MAGIC CONSTANT!
-            FsmPID = correct_fsm:start_link({node()}),
+            {ok, FsmPID} = correct_fsm:start_link({node()}),
             correct_fsm:start_job(FsmPID,Module,"./Handins/" ++ DirID ++ "/",SessionToken),
             Status = running,
             Args = {FsmPID,DirID,SessionToken};
