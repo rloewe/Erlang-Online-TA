@@ -70,27 +70,36 @@ init([]) ->
     end.
 
 
-% handle_cast({nodedown,Node}, State) ->
-%     case dict:find(Node,State#masterState.nodes) of
-%         {ok,Jobs} ->
-%             Nodes = nodes(),
-%             DistFun = fun(Session,Accum) ->
-%                 case dict:find(Session,State#masterState.sessions) of
-%                     {ok,{AssignID,_,Path}} ->
-%                         %TODO fix status update
-%                         Files = load_files_from_dir(Path,[]),
-%                         Node = lists:nth(random:uniform(length(Nodes),Nodes),
-%                         Status = queue_handin_job(Node,AssignID,Files,Session),
-%                         dict:append(Node,Session,Accum);
-%                     error ->
-%                         Accum
-%                 end
-%             end;
-%             %NewNodes = lists:foldl(DistFun,[],)
-%             error ->
-%                 nothing
-%     end,
-%     {noreply, State};
+handle_cast({nodedown,Node}, State) ->
+    %TODO should be in its own process
+    case dict:find(Node,State#masterState.nodes) of
+        {ok,Jobs} ->
+            Nodes = nodes(),
+            NumNodes = length(Nodes),
+            if
+                NumNodes > 0 ->
+                    DistFun = fun(Session,Accum) ->
+                        case dict:find(Session,State#masterState.sessions) of
+                            {ok,{AssignID,_,Path}} ->
+                                %TODO fix status update
+                                Files = load_files_from_dir("./Handins/" ++ Path,[]),
+                                Node = lists:nth(random:uniform(NumNodes,Nodes)),
+                                Status = queue_handin_job(Node,AssignID,Path,Files,Session),
+                                dict:append(Node,Session,Accum);
+                            error ->
+                                Accum
+                        end
+                    end,
+                    Dict = lists:foldl(DistFun,State#masterState.nodes,Jobs),
+                    {noreply,State#masterState{nodes = Dict}};
+                true ->
+                        %TODO If there is 0 nodes available queue instead
+                    {noreply,State}
+            end;
+            %NewNodes = lists:foldl(DistFun,[],)
+        error ->
+            {noreply,State}
+    end;
 
 handle_cast(_Message, State) ->
     io:format("test"),
@@ -271,12 +280,12 @@ send_files_to_node(Node,Assignments,Modules) ->
         Files = load_files_from_dir(Paths,[]),
         node_server:add_assignment(Node,AssignmentID,AssignDict,Files)
     end,
-    lists:map(AssignSendFun,AssignmentList),
     ModuleSendFun = fun({ModuleName,ModulePath}) ->
         {ok,Binary} = file:read_file(ModulePath),
         node_server:add_module(Node,ModuleName,Binary)
     end,
-    lists:map(ModuleSendFun,ModuleList).
+    lists:map(ModuleSendFun,ModuleList),
+    lists:map(AssignSendFun,AssignmentList).
 
 
 %TODO add error handling
