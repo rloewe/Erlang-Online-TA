@@ -146,7 +146,7 @@ handle_call(
     end;
 
 handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
-    ModName = atom_to_list(helper_functions:strip_file_name(ModuleName)),
+    ModName = atom_to_list(ModuleName),
     Path = "./Modules/" ++ ModName,
     case file:write_file(Path++ ".beam",ModuleBinary) of
         ok ->
