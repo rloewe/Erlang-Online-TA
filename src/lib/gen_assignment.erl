@@ -41,7 +41,7 @@ init(Mod, Config, Dir, Files) ->
                 hej ->
                     doho
             after 5000 ->
-                flush()
+                c:flush()
             end,
             doLoop(#state{
                       module = Mod,
