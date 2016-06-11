@@ -81,7 +81,7 @@ handle_cast(
     case Status of
         running ->
             {FsmPID,FilePath,SessionToken} = JobState,
-            NewCurrentJobs = dict:store(SessionToken,FsmPID,State#nodeState.currentJobs),
+            NewCurrentJobs = dict:store(SessionToken,{FilePath, FsmPID},State#nodeState.currentJobs),
             master_server:update_handin_job(SessionToken,running,MasterNode),
             {noreply,State#nodeState{currentJobs = NewCurrentJobs}};
         queue ->
