@@ -1,6 +1,6 @@
 -module (helper_functions).
 
--export ([create_dirs/1,save_files/2,gen_directory_string/1,delete_dir/1]).
+-export ([create_dirs/1,save_files/2,gen_directory_string/1,delete_dir/1,strip_file_name/1]).
 
 
 create_dirs([]) ->

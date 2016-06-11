@@ -146,12 +146,13 @@ handle_call(
     end;
 
 handle_call({add_module,ModuleName,ModuleBinary}, _From, State) ->
-    ModName = atom_to_list(ModuleName),
+    ModName = atom_to_list(helper_functions:strip_file_name(ModuleName)),
     Path = "./Modules/" ++ ModName,
     case file:write_file(Path++ ".beam",ModuleBinary) of
         ok ->
             case code:load_abs(Path) of
                 {module,Module} ->
+                    io:format("~p\n",[ModName]),
                     NewModules = dict:store(ModName, Module, State#nodeState.modules),
                     {reply,ok,State#nodeState{modules = NewModules}};
                 {error,Reason} ->
