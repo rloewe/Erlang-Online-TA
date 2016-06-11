@@ -171,8 +171,8 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
 
-queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs) ->
-    helper_functions:save_files(Files,"./Handins/" ++ DirID),
+queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,Modules) ->
+    helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
     if
         NumJobs < 2 ->
             %TODO do stuff with FSM
