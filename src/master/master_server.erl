@@ -168,6 +168,7 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     Name = "Test", %TODO: generate assignmentID on server --dict:fecth(""),
                     %TODO: what the fuck? line below gives error
                     InitDict = dict:store("name", Name, dict:new()),
+                    io:format("~p\n",[InitDict]),
                     Dict = dict:store("id", AssignmentID, InitDict),
                     %do_broadcast({newAssignment, Dict}, State#masterState.userSockets),
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
