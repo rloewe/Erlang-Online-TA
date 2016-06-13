@@ -26,11 +26,9 @@ correction(timeout,{Type,FilePath,Node,SessionToken}) ->
 
 finished({ok, Res}, {Node, SessionToken}) ->
     finish_handin_job(Node, SessionToken, Res),
-    io:format("Result received ~n~p~n",[Res]),
     {next_state, listen, Node};
 finished({error, ErrorMsg},{Node,SessionToken}) ->
     finish_handin_job(Node,SessionToken,ErrorMsg),
-    io:format("Error received: ~p~n",[ErrorMsg]),
     {next_state,listen,Node}.
 
 
