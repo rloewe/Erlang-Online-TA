@@ -105,7 +105,7 @@ handle_call(
     Size = dict:size(State#nodeState.currentJobs),
     case dict:find(AssignmentID,State#nodeState.assignments) of
         {ok,AssignDict} ->
-            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size,State#nodeState.modules) end),
+            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size) end),
             {reply,{ok,received},State};
         error ->
             {reply,{error,noassign},State}
@@ -118,7 +118,7 @@ handle_call(
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
-    {FilePath, FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
+    {FilePath, _FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
     helper_functions:delete_dir("./Handins/" ++ FilePath++"/"),
     NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
@@ -169,8 +169,7 @@ handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
-
-queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,Modules) ->
+queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs) ->
     file:make_dir("./Handins/" ++ DirID),
     helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
     if

@@ -306,7 +306,7 @@ monitor_loop() ->
     receive
         {nodedown,Node} ->
             io:format("Node ~p died \n",[Node]);
-        {nodeup,Node} ->
+        {nodeup,_Node} ->
             nothing
     end,
     monitor_loop().
