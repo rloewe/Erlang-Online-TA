@@ -26,8 +26,7 @@ delete_dir(Dir) ->
 delete_files([],_) ->
     ok;
 delete_files([Path | Paths],Dir) ->
-    io:format("deleting files!\n"),
-    io:format("~p\n",[file:delete(Dir++Path)]),
+    file:delete(Dir++Path),
     delete_files(Paths,Dir).
 
 

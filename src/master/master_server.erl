@@ -132,7 +132,7 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     Node = lists:nth(random:uniform(NumberOfNodes),nodes()),
                     DirID = create_handin_dirpath(8),
                     file:make_dir("./Handins/" ++ DirID),
-                    spawn(fun() -> helper_functions:save_files(Files,"./Handins/" ++ DirID) end),
+                    spawn(fun() -> helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/") end),
                     %TODO Handle status callback if assignment is not on node server
                     Status = queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken),
                     NewNodes = dict:append(Node,SessionToken,State#masterState.nodes),

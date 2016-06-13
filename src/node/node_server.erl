@@ -120,7 +120,6 @@ handle_call(
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
     {FilePath, FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
-    io:format("I finished job node server"),
     helper_functions:delete_dir("./Handins/" ++ FilePath++"/"),
     NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
