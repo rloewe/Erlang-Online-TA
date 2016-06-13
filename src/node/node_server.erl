@@ -1,6 +1,6 @@
 -module(node_server).
 -behaviour(gen_server).
--import (master_server, [connect_to/3]).
+-import (master_server, [connect_to/2]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1, queue_handin_job/5,finish_handin_job/3,add_assignment/4,add_module/3]).
@@ -16,10 +16,9 @@ start(Path) ->
             %exec:start([]),
             Cookie = dict:fetch("Cookie", Config),
             MasterNode = dict:fetch("Master", Config),
-            Specs = none,
             erlang:set_cookie(node(),Cookie),
             net_kernel:connect_node(MasterNode),
-            gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode,Specs], []);
+            gen_server:start_link({local, ?MODULE}, ?MODULE, [MasterNode], []);
         {error, Msg} ->
             io:format("~p", [Msg]),
             {error,Msg}
@@ -46,9 +45,9 @@ add_module(Node,ModuleName,ModuleBinary) ->
 -record(nodeState, {queue, assignments, currentJobs, masterNode, modules}).
 
 
-init([MasterNode,Specs]) ->
+init([MasterNode]) ->
     %master:connect_to(node()),
-    case connect_to(node(),Specs,MasterNode) of
+    case connect_to(node(),MasterNode) of
         ok ->
             Queue = queue:new(),
             Assignments = dict:new(),

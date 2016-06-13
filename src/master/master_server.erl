@@ -4,14 +4,14 @@
 -import (node_server, [queue_handin_job/5]).
 -import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start/1,connect_to/3,get_handin_status/2,send_handin/3,
+-export([start/1,connect_to/2,get_handin_status/2,send_handin/3,
         add_assignment/3,update_handin_job/3,add_module/3, register_socket/2, deregister_socket/2]).
 
 % @version 1.0.0
 
 
-connect_to(Node,Specs,MasterNode) ->
-    try gen_server:call({master,MasterNode},{add_node,Node,Specs}) of
+connect_to(Node,MasterNode) ->
+    try gen_server:call({master,MasterNode},{add_node,Node}) of
         _ ->
             ok
     catch
@@ -105,7 +105,7 @@ handle_cast(_Message, State) ->
     {noreply, State}.
 
 
-handle_call({add_node,Node,Specs}, _From, State) ->
+handle_call({add_node,Node}, _From, State) ->
     case net_kernel:connect_node(Node) of
         true ->
             spawn(fun() -> send_files_to_node(Node,
@@ -166,7 +166,6 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                 ok ->
                     AssignmentID = dict:fetch("assignmentid",Dict),
                     Name = "Test", %TODO: generate assignmentID on server --dict:fecth(""),
-                    %TODO: what the fuck? line below gives error
                     BroadcastDict = dict:store("id", "AssignmentID", dict:store("name", Name, dict:new())),
                     do_broadcast({newAssignment, BroadcastDict}, State#masterState.userSockets),
                     NewAssignments = dict:store(AssignmentID,Dict,State#masterState.assignments),
@@ -189,8 +188,6 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
         true ->
             case NewStatus of
                 {finished,ReturnVal,Node} ->
-                    %TODO magic with files and return call to end user
-
                     io:format("Master server job finished ~p \n",[ReturnVal]),
                     {_,_,DirID} = dict:fetch(SessionToken,State#masterState.sessions),
                     helper_functions:delete_dir("./Handins/" ++ DirID ++ "/"),
