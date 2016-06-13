@@ -193,7 +193,7 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
 
                     io:format("Master server job finished ~p \n",[ReturnVal]),
                     {_,_,DirID} = dict:fetch(SessionToken,State#masterState.sessions),
-                    helper_functions:delete_dir("./Handins/" ++ DirID),
+                    helper_functions:delete_dir("./Handins/" ++ DirID ++ "/"),
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
                     RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
