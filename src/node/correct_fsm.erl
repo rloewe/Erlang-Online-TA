@@ -18,11 +18,9 @@ init([Node]) ->
     {ok, listen, Node}.
 
 listen({start_assign,{Type,FilePath,SessionToken}},Node) ->
-    io:format("Handin received~n"),
     {next_state,correction,{Type,FilePath,Node,SessionToken},0}.
 
 correction(timeout,{Type,FilePath,Node,SessionToken}) ->
-    io:format("Correction state ~n"),
     gen_assignment:run(Type, FilePath, self()),
     {next_state,finished,{Node,SessionToken}}.
 
