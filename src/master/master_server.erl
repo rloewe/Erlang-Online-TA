@@ -130,10 +130,8 @@ handle_cast({update_job,SessionToken,NewStatus}, State) ->
 handle_cast({requeue_job,SessionToken,Node}, State) ->
     case dict:find(SessionToken,State#masterState.sessions) of
         {ok,{AssignmentID,_,DirID}} ->
-            spawn(fun() ->
                 Files = helper_functions:load_files_from_dir("./Handins/" ++ DirID ++ "/"),
-                queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken)
-            end),
+                queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken),
             NewNodes = dict:append(Node,SessionToken, State#masterState.nodes),
             {noreply,State#masterState{nodes = NewNodes}};
         error ->
