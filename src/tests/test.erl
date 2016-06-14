@@ -28,5 +28,5 @@ load_files([Path | Paths], Files) ->
 run() ->
     {ok,Binary} = file:read_file("/root/assignment/handin.py"),
     master_server:send_handin("hello",[{"wat.py",Binary}],node()),
-    {ok,Binary} = file:read_file("/root/assignment2/Matematik.hs"),
-    master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node()).
+    {ok,Binary2} = file:read_file("/root/assignment2/Matematik.hs"),
+    master_server:send_handin("hello2",[{"Matematik.hs",Binary2}],node()).
