@@ -93,9 +93,9 @@ handle_cast({nodedown,Node}, State) ->
                     Dict = lists:foldl(DistFun,State#masterState.nodes,Jobs),
                     {noreply,State#masterState{nodes = Dict}};
                 true ->
-                    io:format("~p\n\n",[State#masterState.queue]),
+                    NewNodes = dict:erase(Node,State#masterState.nodes),
                     NewQueue = queue:join(State#masterState.queue,queue:from_list(Jobs)),
-                    {noreply,State#masterState{queue = NewQueue}}
+                    {noreply,State#masterState{queue = NewQueue,nodes = NewNodes}}
             end;
             %NewNodes = lists:foldl(DistFun,[],)
         error ->
@@ -114,7 +114,6 @@ handle_cast({update_job,SessionToken,NewStatus}, State) ->
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
                     RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
-                    io:format("~p\n",[NewNodes]),
                     {noreply, State#masterState{nodes=NewNodes,sessions=NewSessions}};
                     %{reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
                 Status ->
