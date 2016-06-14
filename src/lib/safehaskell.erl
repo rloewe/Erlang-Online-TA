@@ -14,9 +14,8 @@ run(Config, AssignmentDir, WorkingDir) ->
     {ok, RunScripts} = dict:find("runorder", Config),
     {
      ok,
-     "cp -r " ++ WorkingDir ++ " " ++ AssignmentDir ++ " && runhaskell -XSafe "
-     ++ string:join(lists:map(fun ({_,Elm}) ->
-                                      " && runhaskell -XSafe " ++ AssignmentDir ++ Elm end
-                              , RunScripts)),
+     "cp -r " ++ WorkingDir ++ " " ++ AssignmentDir ++ "cd " ++ AssignmentDir ++
+     "; ghc -XSafe " ++ string:join(RunScripts, "; ghc -XSafe ") ++ "; " ++
+     string:join(lists:map(fun (Elm) -> "./" ++ Elm end, RunScripts), "; "),
      0
     }.
