@@ -289,7 +289,7 @@ send_files_to_node(Node,Assignments,Modules,Queue) ->
     AssignmentList = dict:to_list(Assignments),
     ModuleList = dict:to_list(Modules),
     AssignSendFun = fun({AssignmentID,AssignDict}) ->
-        Files = helper_functions:load_files_from_dir("./Assignments" ++ AssignmentID ++ "/"),
+        Files = helper_functions:load_files_from_dir("./Assignments/" ++ AssignmentID ++ "/"),
         node_server:add_assignment(Node,AssignmentID,AssignDict,Files)
     end,
     ModuleSendFun = fun({ModuleName,ModulePath}) ->

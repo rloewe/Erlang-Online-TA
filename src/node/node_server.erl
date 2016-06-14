@@ -127,13 +127,13 @@ handle_call(
 handle_call(
   {add_assignment,AssignmentID,AssignmentDict,Files}, _From,
   State) ->
-    Path = "./Assignments/"++AssignmentID ++ "/",
+    Path = "./Assignments/"++AssignmentID,
     case file:make_dir(Path) of
       Pat when Pat =:= ok; Pat =:= {error,eexist} ->
           ModuleName = dict:fetch("module", AssignmentDict),
           case dict:find(ModuleName, State#nodeState.modules) of
               {ok, Module} ->
-                  helper_functions:save_files(Files,Path),
+                  helper_functions:save_files(Files,Path ++ "/"),
                   {ok, Pid} = gen_assignment:build(Module, AssignmentDict, Path, Files),
                   NewAssignments = dict:store(AssignmentID,{Pid, AssignmentDict},State#nodeState.assignments),
                   {reply, ok, State#nodeState{assignments = NewAssignments}};
