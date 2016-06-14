@@ -101,6 +101,29 @@ handle_cast({nodedown,Node}, State) ->
             {noreply,State}
     end;
 
+handle_cast({update_job,SessionToken,NewStatus}, State) ->
+    lists:map(fun(Pid) -> Pid ! {SessionToken, NewStatus} end, State#masterState.userSockets),
+    case dict:is_key(SessionToken,State#masterState.sessions) of
+        true ->
+            case NewStatus of
+                {finished,ReturnVal,Node} ->
+                    io:format("Master server job finished ~p \n",[ReturnVal]),
+                    {_,_,DirID} = dict:fetch(SessionToken,State#masterState.sessions),
+                    helper_functions:delete_dir("./Handins/" ++ DirID ++ "/"),
+                    NewSessions = dict:erase(SessionToken,State#masterState.sessions),
+                    RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
+                    NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
+                    {noreply, State#masterState{nodes=NewNodes,sessions=NewSessions}};
+                    %{reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
+                Status ->
+                    NewSessions = dict:update(SessionToken,fun ({X, _, Y}) -> {X, Status, Y} end,State#masterState.sessions),
+                    {noreply, State#masterState{sessions=NewSessions}}
+                    %{reply, {ok,updated}, State#masterState{sessions=NewSessions}}
+            end;
+        false ->
+            {noreply,State}
+            %{reply, {error,nosess}, State}
+    end;
 
 
 %This function dont update the status, should fix
