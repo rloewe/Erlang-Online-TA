@@ -1,6 +1,6 @@
 -module (helper_functions).
 
--export ([create_dirs/1,save_files/2,gen_directory_string/1,delete_dir/1,strip_file_name/1]).
+-export ([create_dirs/1,save_files/2,gen_directory_string/1,delete_dir/1,strip_file_name/1,load_files_from_dir/1]).
 
 
 create_dirs([]) ->
@@ -37,6 +37,24 @@ save_files([{FileName,File} | Rest ],Path) ->
     RealPath = Path ++ strip_file_name(FileName),
     file:write_file(RealPath,File),
     save_files(Rest,Path).
+
+load_files_from_dir(Path) ->
+    case file:list_dir(Path) of
+        {ok,Files} ->
+            load_files_from_dir(Files,Path,[]);
+        Error ->
+            {error,Error}
+    end.
+
+load_files_from_dir([], _ , Files) ->
+    Files;
+load_files_from_dir([Path | Paths], Dir, Files) ->
+    case file:read_file(Dir ++ Path) of
+        {ok,Binary} ->
+            load_files_from_dir(Paths,Dir,[{Path,Binary} | Files]);
+        Error ->
+            load_files_from_dir(Paths,Dir,Files)
+    end.
 
 
 gen_directory_string(Size) ->

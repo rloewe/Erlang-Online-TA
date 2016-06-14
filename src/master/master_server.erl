@@ -2,7 +2,6 @@
 -behaviour(gen_server).
 
 -import (node_server, [queue_handin_job/5]).
--import (config_parser, [parse/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start/1,connect_to/2,get_handin_status/2,send_handin/3,
         add_assignment/3,update_handin_job/3,add_module/3, register_socket/2, deregister_socket/2]).
@@ -21,7 +20,7 @@ connect_to(Node,MasterNode) ->
 
 start(ConfigFile) ->
     %% @TODO change ConfigFile variable name
-    case parse(ConfigFile, true) of
+    case config_parser:parse(ConfigFile, true) of
         {ok, Config} ->
             Cookie = dict:fetch("Cookie", Config),
             erlang:set_cookie(node(),Cookie),
@@ -51,7 +50,7 @@ register_socket(Pid, MasterNode) ->
 deregister_socket(Pid, MasterNode) ->
     gen_server:call({master, MasterNode},{deregister_socket, Pid}).
 
--record(masterState, {nodes, sessions, assignments, modules, userSockets}).
+-record(masterState, {nodes, sessions, assignments, modules, queue, userSockets}).
 
 init([]) ->
     case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
@@ -62,6 +61,7 @@ init([]) ->
                 sessions = dict:new(),
                 assignments = dict:new(),
                 modules = dict:new(),
+                queue = queue:new(),
                 userSockets = []
                 }
             };
@@ -82,7 +82,7 @@ handle_cast({nodedown,Node}, State) ->
                         case dict:find(Session,State#masterState.sessions) of
                             {ok,{AssignID,_,Path}} ->
                                 %TODO fix status update
-                                Files = load_files_from_dir("./Handins/" ++ Path,[]),
+                                Files = helper_functions:load_files_from_dir("./Handins/" ++ Path ++ "/"),
                                 Node = lists:nth(random:uniform(NumNodes,Nodes)),
                                 Status = queue_handin_job(Node,AssignID,Path,Files,Session),
                                 dict:append(Node,Session,Accum);
@@ -93,16 +93,29 @@ handle_cast({nodedown,Node}, State) ->
                     Dict = lists:foldl(DistFun,State#masterState.nodes,Jobs),
                     {noreply,State#masterState{nodes = Dict}};
                 true ->
-                        %TODO If there is 0 nodes available queue instead
-                    {noreply,State}
+                    NewQueue = queue:join(State#masterState.queue,queue:from_list(Jobs)),
+                    {noreply,State#masterState{queue = NewQueue}}
             end;
             %NewNodes = lists:foldl(DistFun,[],)
         error ->
             {noreply,State}
     end;
 
-handle_cast(_Message, State) ->
-    {noreply, State}.
+
+
+%This function dont update the status, should fix
+handle_cast({requeue_job,SessionToken,Node}, State) ->
+    case dict:find(SessionToken,State#masterState.sessions) of
+        {ok,{AssignmentID,_,DirID}} ->
+            spawn(fun() ->
+                Files = helper_functions:load_files_from_dir("./Handins/" ++ DirID ++ "/"),
+                queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken)
+            end),
+            NewNodes = dict:append(Node,SessionToken, State#masterState.nodes),
+            {noreply,State#masterState{nodes = NewNodes}};
+        error ->
+            {noreply, State}
+    end.
 
 
 handle_call({add_node,Node}, _From, State) ->
@@ -110,15 +123,16 @@ handle_call({add_node,Node}, _From, State) ->
         true ->
             spawn(fun() -> send_files_to_node(Node,
                                               State#masterState.assignments,
-                                              State#masterState.modules)
-                            end);
+                                              State#masterState.modules,
+                                              State#masterState.queue)
+                            end),
+            {reply, ok, State#masterState{queue = queue:new()}};
         false ->
-            nothing;
+            {reply, ok, State};
         ignored ->
             %Is a case of connect node, added with dummy for now
-            nothing
-    end,
-    {reply, ok, State};
+            {reply, ok, State}
+    end;
 
 handle_call({send_handin,AssignmentID,Files},_From, State) ->
     case dict:is_key(AssignmentID,State#masterState.assignments) of
@@ -133,7 +147,7 @@ handle_call({send_handin,AssignmentID,Files},_From, State) ->
                     DirID = create_handin_dirpath(8),
                     file:make_dir("./Handins/" ++ DirID),
                     spawn(fun() -> helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/") end),
-                    %TODO Handle status callback if assignment is not on node server
+                    %TODO Handle status callback
                     Status = queue_handin_job(Node,AssignmentID,DirID,Files,SessionToken),
                     NewNodes = dict:append(Node,SessionToken,State#masterState.nodes),
                     NewSessions = dict:store(SessionToken,{AssignmentID,Status,DirID},State#masterState.sessions),
@@ -258,6 +272,7 @@ check_assignment_parameters(AssignmentDict,State) ->
 do_broadcast(Msg, Sockets) ->
     lists:map(fun(Pid) -> Pid ! Msg end, Sockets).
 
+
 send_module_to_nodes(Nodes,ModuleName,ModuleBinary) ->
     UpdateFun = fun(Node) ->
         node_server:add_module(Node,ModuleName,ModuleBinary) end,
@@ -269,33 +284,26 @@ send_assignment_to_node(Nodes,AssignmentID,AssignmentDict,Files) ->
         node_server:add_assignment(Node,AssignmentID,AssignmentDict,Files) end,
     lists:map(UpdateFun,Nodes).
 
-send_files_to_node(Node,Assignments,Modules) ->
+send_files_to_node(Node,Assignments,Modules,Queue) ->
     %Modules, Assignments
     AssignmentList = dict:to_list(Assignments),
     ModuleList = dict:to_list(Modules),
     AssignSendFun = fun({AssignmentID,AssignDict}) ->
-        {ok,Paths} = file:list_dir("./Assignments/" ++ AssignmentID ++ "/"),
-        Files = load_files_from_dir(Paths,[]),
+        Files = helper_functions:load_files_from_dir("./Assignments" ++ AssignmentID ++ "/"),
         node_server:add_assignment(Node,AssignmentID,AssignDict,Files)
     end,
     ModuleSendFun = fun({ModuleName,ModulePath}) ->
         {ok,Binary} = file:read_file(ModulePath),
         node_server:add_module(Node,ModuleName,Binary)
     end,
+    HandinSendFun = fun(SessionToken) ->
+        gen_server:cast({master,node()},{requeue_job,SessionToken,Node})
+    end,
     lists:map(ModuleSendFun,ModuleList),
-    lists:map(AssignSendFun,AssignmentList).
+    lists:map(AssignSendFun,AssignmentList),
+    lists:map(HandinSendFun,queue:to_list(Queue)).
 
 
-%TODO add error handling
-load_files_from_dir([],Files) ->
-    Files;
-load_files_from_dir([Path | Paths], Files)->
-    case file:read_file("./Assignments/" ++ Path) of
-        {ok, Binary} ->
-            load_files_from_dir(Paths,[{Path,Binary} | Paths]);
-        _ ->
-            load_files_from_dir(Paths,Files)
-    end.
 
 start_monitor() ->
     net_kernel:monitor_nodes(true),
@@ -305,6 +313,7 @@ start_monitor() ->
 monitor_loop() ->
     receive
         {nodedown,Node} ->
+            gen_server:cast({master,node()},{nodedown,Node}),
             io:format("Node ~p died \n",[Node]);
         {nodeup,_Node} ->
             nothing
@@ -320,3 +329,5 @@ create_handin_dirpath(Size) ->
         _ ->
             DirID
     end.
+
+
