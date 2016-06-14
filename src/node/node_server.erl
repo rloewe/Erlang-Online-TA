@@ -42,7 +42,7 @@ add_assignment(Node,AssignmentID,AssignmentDict,Files) ->
 add_module(Node,ModuleName,ModuleBinary) ->
     gen_server:call({?MODULE,Node},{add_module,ModuleName,ModuleBinary}).
 
--record(nodeState, {queue, assignments, currentJobs, masterNode, modules}).
+-record(nodeState, {queue, assignments, currentJobs, masterNode, modules, maxJobs}).
 
 
 init([MasterNode]) ->
@@ -60,7 +60,8 @@ init([MasterNode]) ->
                             assignments = Assignments,
                             currentJobs = CurrentJobs,
                             masterNode = MasterNode,
-                            modules = dict:new()
+                            modules = dict:new(),
+                            maxJobs = 4
                            }
                     };
                 {error,E} ->
@@ -70,7 +71,6 @@ init([MasterNode]) ->
             io:format("Cannot connect to ~p \n",[MasterNode]),
             {stop,nocon}
     end.
-
 
 
 handle_cast(
@@ -91,6 +91,27 @@ handle_cast(
     end;
 
 
+
+handle_cast(
+  {requeue_job},State) ->
+    case queue:out(State#nodeState.queue) of
+        {{value,{AssignmentID,FilePath,SessionToken}},NewQueue} ->
+            case dict:find(AssignmentID,State#nodeState.assignments) of
+                {ok,Assignment} ->
+                    Size = dict:size(State#nodeState.currentJobs),
+                    MaxJobs = State#nodeState.maxJobs,
+                    spawn(fun() ->
+                        Files = helper_functions:load_files_from_dir("./Handins/" ++ FilePath),
+                        queue_handin(Assignment,FilePath,Files,SessionToken,Size,MaxJobs)
+                        end),
+                    {noreply,State#nodeState{queue = NewQueue}};
+                error ->
+                    {noreply,State}
+            end;
+        {empty,_} ->
+            {noreply,State}
+    end;
+
 handle_cast(_Message, State) ->
     {noreply, State}.
 
@@ -100,12 +121,12 @@ handle_call(
   _From,
   State
  ) ->
-    %TODO handle assignment id
-    %TODO fix magic constant
+    %TODO move check for maxjobs into server
     Size = dict:size(State#nodeState.currentJobs),
+    MaxJobs = State#nodeState.maxJobs,
     case dict:find(AssignmentID,State#nodeState.assignments) of
         {ok,AssignDict} ->
-            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size) end),
+            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size,MaxJobs) end),
             {reply,{ok,received},State};
         error ->
             {reply,{error,noassign},State}
@@ -122,6 +143,7 @@ handle_call(
     helper_functions:delete_dir("./Handins/" ++ FilePath++"/"),
     NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
+    gen_server:cast({?MODULE,node()},{requeue_job}),
     {reply, ok, State#nodeState{currentJobs = NewCurrentJobs}};
 
 handle_call(
@@ -169,13 +191,11 @@ handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
-queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs) ->
+queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,MaxJobs) ->
     file:make_dir("./Handins/" ++ DirID),
     helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
     if
-        NumJobs < 2 ->
-            %TODO do stuff with FSM
-            %TODO Fix MAGIC CONSTANT!
+        NumJobs < MaxJobs ->
             {ok, FsmPID} = correct_fsm:start_link({node()}),
             {ok, Pwd} = file:get_cwd(),
             correct_fsm:start_job(FsmPID,Module, Pwd ++ "/Handins/" ++ DirID ++ "/",SessionToken),
