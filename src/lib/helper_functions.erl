@@ -26,7 +26,7 @@ delete_dir(Dir) ->
 delete_files([],_) ->
     ok;
 delete_files([Path | Paths],Dir) ->
-    file:delete(Dir++Path),
+    file:delete(Dir++ "/" ++ Path),
     delete_files(Paths,Dir).
 
 
@@ -34,7 +34,7 @@ delete_files([Path | Paths],Dir) ->
 save_files([],_) ->
     ok;
 save_files([{FileName,File} | Rest ],Path) ->
-    RealPath = Path ++ strip_file_name(FileName),
+    RealPath = Path ++ "/" ++ strip_file_name(FileName),
     file:write_file(RealPath,File),
     save_files(Rest,Path).
 
@@ -49,7 +49,7 @@ load_files_from_dir(Path) ->
 load_files_from_dir([], _ , Files) ->
     Files;
 load_files_from_dir([Path | Paths], Dir, Files) ->
-    case file:read_file(Dir ++ Path) of
+    case file:read_file(Dir ++ "/" ++ Path) of
         {ok,Binary} ->
             load_files_from_dir(Paths,Dir,[{Path,Binary} | Files]);
         Error ->
