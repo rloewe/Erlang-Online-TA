@@ -15,7 +15,7 @@ run(Config, AssignmentDir, WorkingDir) ->
     {
      ok,
      "cp -r " ++ WorkingDir ++ " " ++ AssignmentDir ++ "cd " ++ AssignmentDir ++
-     "; ghc -XSafe " ++ string:join(RunScripts, "; ghc -XSafe ") ++ "; " ++
-     string:join(lists:map(fun (Elm) -> "./" ++ Elm end, RunScripts), "; "),
+     "; ghc -XSafe " ++ string:join(lists:map(fun ({_, Elm}) -> Elm end, RunScripts), "; ghc -XSafe ") ++ "; " ++
+     string:join(lists:map(fun ({_, Elm}) -> "./" ++ Elm end, RunScripts), "; "),
      0
     }.
