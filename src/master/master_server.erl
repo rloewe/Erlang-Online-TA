@@ -175,8 +175,8 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     spawn(fun() -> helper_functions:save_files(Files,Path) end),
                     spawn(fun() -> send_assignment_to_node(nodes(),AssignmentID,Dict,Files) end),
                     {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
-                {error,Err} ->
-                    {reply, {error,Err},State}
+                {error,missing_req,Error} ->
+                    {reply, {error,missingreq,Error},State}
             end;
         {error, Err} ->
             {reply, {error,Err}, State}

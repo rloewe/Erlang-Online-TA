@@ -17,14 +17,13 @@ parse(Binary) ->
     Content = binary_to_list(Binary),
     Lines = string:tokens(Content, "\n"),
     Dict = populate_dict(Lines, dict:new()),
-    Required = dict:is_key("runorder", Dict) and dict:is_key("module", Dict)
-    and dict:is_key("assignmentid",Dict),
-    if 
-        Required -> 
+    Required = check_requirements(["runorder","module","assignmentid"],Dict),
+    case Required of
+        true ->
             NewDict = add_defaults(Dict),
             {ok, NewDict};
-        true ->
-            {error,missing_reqs}
+        {false,Req} ->
+            {error,missing_req,Req}
     end.
 
 populate_dict([], Dict) -> Dict;
@@ -34,7 +33,7 @@ populate_dict([Line | Lines], Dict) ->
     case Key of
         "runorder" ->
             Values = string:tokens(Value, ","),
-            Runorder = parse_runorder_files(Values, []), 
+            Runorder = parse_runorder_files(Values, []),
             NewDict = dict:store("runorder",Runorder,Dict),
             populate_dict(Lines,NewDict);
         "required_libs" ->
@@ -55,7 +54,7 @@ parse_runorder_files([Value | Values], Parsed) ->
     [Elem | Elems] = string:tokens(Value, " "),
     case Elem of
         "unsafe" ->
-            parse_runorder_files(Values,[{unsafe,lists:nth(1,Elems)} | Parsed]);        
+            parse_runorder_files(Values,[{unsafe,lists:nth(1,Elems)} | Parsed]);
         _ ->
             parse_runorder_files(Values,[{safe,Elem} | Parsed])
     end.
@@ -100,3 +99,12 @@ to_type(Entry) ->
             fun(Elem) -> Elem end
     end.
 
+check_requirements([],_) ->
+    true;
+check_requirements([Requirement | Requirements], Dict) ->
+    case dict:is_key(Requirement,Dict) of
+        true ->
+            check_requirements(Requirements,Dict);
+        false ->
+            {false,Requirement}
+    end.
