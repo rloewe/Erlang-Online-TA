@@ -7,7 +7,7 @@ test() ->
     add_module(docker,"./lib/docker.beam",Master),
     add_assignment("/root/assignment/assignment.conf",["/root/assignment/lol.py"],Master),
     add_module(safehaskell, "./lib/safehaskell.beam", Master),
-    add_assignment("/root/assignment2/assignment2.conf",["/root/assignment2/Test.hs"],Master).
+    add_assignment("/root/assignment2/assignment.conf",["/root/assignment2/Test.hs"],Master).
 
 add_module(Name,Path,Master) ->
     {ok,Binary} = file:read_file(Path),
@@ -28,5 +28,5 @@ load_files([Path | Paths], Files) ->
 run() ->
     {ok,Binary} = file:read_file("/root/assignment/handin.py"),
     master_server:send_handin("hello",[{"wat.py",Binary}],node()),
-    {ok,Binary} = file:read_file("/root/assignment/handin.py"),
-    master_server:send_handin("hello",[{"wat.py",Binary}],node()).
+    {ok,Binary} = file:read_file("/root/assignment2/Matematik.hs"),
+    master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node()).
