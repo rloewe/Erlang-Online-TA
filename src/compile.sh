@@ -1,6 +1,6 @@
 erlc start.erl;
 cd lib/;
-erlc *.erl;
+erl -pa . -make;
 cd ../node;
 erlc *.erl;
 cd ../master;
