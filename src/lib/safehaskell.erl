@@ -14,8 +14,12 @@ run(Config, AssignmentDir, WorkingDir) ->
     {ok, RunScripts} = dict:find("runorder", Config),
     {
      ok,
-     "cp -r " ++ WorkingDir ++ " " ++ AssignmentDir ++ ";cd " ++ AssignmentDir ++
+     "cp -r " ++ WorkingDir ++ "* " ++ AssignmentDir ++ ";cd " ++ AssignmentDir ++
      "; ghc -XSafe " ++ string:join(lists:map(fun ({_, Elm}) -> Elm end, RunScripts), "; ghc -XSafe ") ++ "; " ++
-     string:join(lists:map(fun ({_, Elm}) -> "./" ++ Elm end, RunScripts), "; "),
+     string:join(lists:map(fun toExec/1, RunScripts), "; "),
      0
     }.
+
+toExec({_, Elm}) ->
+    [File | _] = string:tokens(Elm, ".hs"),
+    "." ++ File.
