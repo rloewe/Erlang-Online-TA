@@ -1,6 +1,7 @@
 -module(docker).
 
--export([setup/2, teardown/2, run/2]).
+-behaviour(gen_assignment).
+-export([setup/2, teardown/2, run/3]).
 
 setup(Config, WorkingDir) ->
     {ok, Id} = dict:find("assignmentid", Config),
@@ -25,7 +26,7 @@ teardown(Config, WorkingDir) ->
     {ok, Id} = dict:find("assignmentid", Config),
     {doCmd, "docker rmi " ++ Id}.
 
-run(Config, AssignmentDir) ->
+run(Config, AssignmentDir, _WorkingDir) ->
     {ok, Id} = dict:find("assignmentid", Config),
     case dict:find("network", Config) of
         {ok, enabled} ->

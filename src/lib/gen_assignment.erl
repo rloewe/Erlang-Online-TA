@@ -6,11 +6,11 @@
     {error, Msg :: term()}
     | {doCmd, Cmd :: term()}
     | done.
--callback teardown(WorkingDir :: term()) ->
+-callback teardown(Config :: term(), WorkingDir :: term()) ->
     {error, Msg :: term()}
     | {doCmd, Cmd :: term()}
     | done.
--callback run(Config :: term(), AssignmentDir :: term()) ->
+-callback run(Config :: term(), AssignmentDir :: term(), WorkingDir :: term()) ->
     {error, Msg :: term()}
     | {ok, RunCmd :: term(), StartUpTime :: term()}.
 
@@ -67,8 +67,9 @@ doLoop(State) ->
             end;
         {run, AssignmentDir, From} ->
             Mod = State#state.module,
+            WorkingDir = State#state.workingDir,
             try
-                case Mod:run(State#state.config, AssignmentDir) of
+                case Mod:run(State#state.config, AssignmentDir, WorkingDir) of
                     {error, Msg} ->
                         io:format("~p", [Msg]),
                         From ! {error, Msg};
