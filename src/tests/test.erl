@@ -2,10 +2,13 @@
 
 -export ([test/0,run/0]).
 
-test() ->
+add_docker() ->
     Master = node(),
     add_module(docker,"./lib/docker.beam",Master),
-    add_assignment("/root/assignment/assignment.conf",["/root/assignment/lol.py"],Master),
+    add_assignment("/root/assignment/assignment.conf",["/root/assignment/lol.py"],Master).
+
+add_haskell() ->
+    Master = node(),
     add_module(safehaskell, "./lib/safehaskell.beam", Master),
     add_assignment("/root/assignment2/assignment.conf",["/root/assignment2/Test.hs"],Master).
 
@@ -25,8 +28,10 @@ load_files([Path | Paths], Files) ->
     {ok, Binary} = file:read_file(Path),
     load_files(Paths,[{Path,Binary} | Files]).
 
-run() ->
+run_docker() ->
     {ok,Binary} = file:read_file("/root/assignment/handin.py"),
     master_server:send_handin("hello",[{"wat.py",Binary}],node()),
+
+run_haskell() ->
     {ok,Binary} = file:read_file("/root/assignment2/Matematik.hs"),
     master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node()).
