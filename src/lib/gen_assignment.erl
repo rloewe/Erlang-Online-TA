@@ -82,7 +82,7 @@ doLoop(State) ->
                                       exec:run(Cmd, [{stdout,Pid},{stderr,Pid},{kill_timeout, MaxTime}, monitor]),
                                       receive
                                           {'DOWN', _, _, _, _} ->
-                                              Pid ! staph
+                                              Pid ! stahp
                                       end
                               end);
                     X ->
@@ -104,6 +104,6 @@ getOutput(From, Output) ->
         {_,_,Msg} ->
             io:format("~p", [Msg]),
             getOutput(From, Output ++ binary:bin_to_list(Msg));
-        staph ->
+        stahp ->
             job_done(From, {ok, Output})
     end.
