@@ -5,3 +5,5 @@ cd ../node;
 erlc *.erl;
 cd ../master;
 erlc *.erl;
+cd ../tests;
+erlc *.erl;
