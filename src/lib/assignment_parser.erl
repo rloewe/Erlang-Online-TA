@@ -29,7 +29,8 @@ parse(Binary) ->
 populate_dict([], Dict) -> Dict;
 populate_dict([Line | Lines], Dict) ->
     List = lists:map(fun string:to_lower/1,string:tokens(Line, "=")),
-    [Key , Value] = lists:map(fun string:strip/1, List),
+    [KeyUpper, Value] = lists:map(fun string:strip/1, List),
+    Key = string:to_lower(KeyUpper),
     case Key of
         "runorder" ->
             Values = string:tokens(Value, ","),
