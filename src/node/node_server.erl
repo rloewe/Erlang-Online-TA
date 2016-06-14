@@ -118,7 +118,7 @@ handle_call(
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
-    {FilePath, _FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
+    {FilePath, FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
     helper_functions:delete_dir("./Handins/" ++ FilePath++"/"),
     NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
@@ -133,16 +133,10 @@ handle_call(
           ModuleName = dict:fetch("module", AssignmentDict),
           case dict:find(ModuleName, State#nodeState.modules) of
               {ok, Module} ->
-                    helper_functions:save_files(Files,Path),
-                    try gen_assignment:build(Module, AssignmentDict, Path, Files) of
-                        {ok,Pid} ->
-                            NewAssignments = dict:store(AssignmentID,{Pid, AssignmentDict},State#nodeState.assignments),
-                            {reply, ok, State#nodeState{assignments = NewAssignments}}
-                    catch
-                        E:T ->
-                            io:format("error type: ~p \n error message: ~p \n",[E,T]),
-                            {reply,{error,builderror,T}}
-                    end;
+                  helper_functions:save_files(Files,Path),
+                  {ok, Pid} = gen_assignment:build(Module, AssignmentDict, Path, Files),
+                  NewAssignments = dict:store(AssignmentID,{Pid, AssignmentDict},State#nodeState.assignments),
+                  {reply, ok, State#nodeState{assignments = NewAssignments}};
               error ->
                   {reply, {error, "Module does not exist"}, State}
           end;
