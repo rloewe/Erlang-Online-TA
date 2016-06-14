@@ -74,8 +74,17 @@ doLoop(State) ->
                         io:format("~p", [Msg]),
                         From ! {error, Msg};
                     {ok, Cmd, StartUpTime} ->
-                        Pid = spawn(fun () -> getOutput(From, StartUpTime) end),
-                        exec:run(Cmd, [{stdout,Pid},{stderr,Pid}]);
+                        MaxTime = dict:fetch("maxtime", State#state.config),
+                        spawn(fun() ->
+                                      exec:start([root]),
+                                      Pid = spawn(fun () -> getOutput(From, "") end),
+                                      io:format("~p", [Pid]),
+                                      exec:run(Cmd, [{stdout,Pid},{stderr,Pid},{kill_timeout, MaxTime}, monitor]),
+                                      receive
+                                          {'DOWN', _, _, _, _} ->
+                                              Pid ! staph
+                                      end
+                              end);
                     X ->
                         io:format("Run gave: ~p\n", [X]),
                         job_done(From, {error, "Wat"})
@@ -89,9 +98,12 @@ doLoop(State) ->
     end,
     doLoop(State).
 
-getOutput(From, Timeout) ->
+getOutput(From, Output) ->
     %TODO: fix timeout
     receive
         {_,_,Msg} ->
-            job_done(From, {ok, Msg})
+            io:format("~p", [Msg]),
+            getOutput(From, Output ++ binary:bin_to_list(Msg));
+        staph ->
+            job_done(From, {ok, Output})
     end.
