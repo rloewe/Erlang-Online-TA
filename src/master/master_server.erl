@@ -93,6 +93,7 @@ handle_cast({nodedown,Node}, State) ->
                     Dict = lists:foldl(DistFun,State#masterState.nodes,Jobs),
                     {noreply,State#masterState{nodes = Dict}};
                 true ->
+                    io:format("~p\n\n",[State#masterState.queue]),
                     NewQueue = queue:join(State#masterState.queue,queue:from_list(Jobs)),
                     {noreply,State#masterState{queue = NewQueue}}
             end;
@@ -147,6 +148,7 @@ handle_call({add_node,Node}, _From, State) ->
                                               State#masterState.modules,
                                               State#masterState.queue)
                             end),
+            io:format("~p\n\n",[State#masterState.queue]),
             {reply, ok, State#masterState{queue = queue:new()}};
         false ->
             {reply, ok, State};
