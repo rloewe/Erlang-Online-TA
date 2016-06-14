@@ -40,7 +40,7 @@ add_assignment(AssignmentConfig,Files,MasterNode) ->
     gen_server:call({master,MasterNode},{add_assignment,AssignmentConfig,Files}).
 
 update_handin_job(SessionToken,NewStatus,MasterNode) ->
-    gen_server:call({master,MasterNode},{update_job,SessionToken,NewStatus}).
+    gen_server:cast({master,MasterNode},{update_job,SessionToken,NewStatus}).
 
 add_module(ModuleName,Binary,MasterNode) ->
     gen_server:call({master,MasterNode},{add_module,ModuleName,Binary}).
@@ -189,8 +189,8 @@ handle_call({add_assignment,AssignmentConfigBinary,Files}, _From, State) ->
                     spawn(fun() -> helper_functions:save_files(Files,Path) end),
                     spawn(fun() -> send_assignment_to_node(nodes(),AssignmentID,Dict,Files) end),
                     {reply,{ok,AssignmentID},State#masterState{assignments=NewAssignments}};
-                {error,missing_req,Error} ->
-                    {reply, {error,missingreq,Error},State}
+                {error,Error} ->
+                    {reply, {error,Error},State}
             end;
         {error, Err} ->
             {reply, {error,Err}, State}
@@ -208,13 +208,16 @@ handle_call({update_job,SessionToken,NewStatus}, _From, State) ->
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
                     RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
-                    {reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
+                    {noreply, State#masterState{nodes=NewNodes,sessions=NewSessions}};
+                    %{reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
                 Status ->
                     NewSessions = dict:update(SessionToken,fun ({X, _, Y}) -> {X, Status, Y} end,State#masterState.sessions),
-                    {reply, {ok,updated}, State#masterState{sessions=NewSessions}}
+                    {noreply, State#masterState{sessions=NewSessions}}
+                    %{reply, {ok,updated}, State#masterState{sessions=NewSessions}}
             end;
         false ->
-            {reply, {error,nosess}, State}
+            {noreply,State}
+            %{reply, {error,nosess}, State}
     end;
 
 handle_call({register_socket, Pid}, _From, State) ->
