@@ -114,6 +114,7 @@ handle_cast({update_job,SessionToken,NewStatus}, State) ->
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
                     RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
+                    io:format("~p\n",[NewNodes]),
                     {noreply, State#masterState{nodes=NewNodes,sessions=NewSessions}};
                     %{reply, {ok,finished}, State#masterState{nodes=NewNodes,sessions=NewSessions}};
                 Status ->
