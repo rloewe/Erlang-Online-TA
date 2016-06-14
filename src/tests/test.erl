@@ -1,6 +1,6 @@
 -module (test).
 
--export ([test/0,run/0]).
+-export ([add_docker/0,add_haskell/0,run_docker/0,run_haskell/0]).
 
 add_docker() ->
     Master = node(),
@@ -30,7 +30,7 @@ load_files([Path | Paths], Files) ->
 
 run_docker() ->
     {ok,Binary} = file:read_file("/root/assignment/handin.py"),
-    master_server:send_handin("hello",[{"wat.py",Binary}],node()),
+    master_server:send_handin("hello",[{"wat.py",Binary}],node()).
 
 run_haskell() ->
     {ok,Binary} = file:read_file("/root/assignment2/Matematik.hs"),
