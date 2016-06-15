@@ -155,9 +155,9 @@ handle_call(
     %TODO add jobs from queue to running
     %TODO Handle errorhandling with master communication?
     %TODO Kill FSM
-    {FilePath, FsmPID} = dict:fetch(SessionToken,State#nodeState.currentJobs),
+    {value,{FsmPID,_,_,{_, FilePath}}} = lists:keysearch(SessionToken,3,State#nodeState.currentJobs),
     helper_functions:delete_dir("./Handins/" ++ FilePath++"/"),
-    NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
+    NewCurrentJobs = lists:keyreplace(FsmPID,1,State#nodeState.currentJobs,{FsmPID,free,none,none}),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
     gen_server:cast({?MODULE,node()},{dequeue_job}),
     {reply, ok, State#nodeState{currentJobs = NewCurrentJobs}};
