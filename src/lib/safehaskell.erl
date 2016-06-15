@@ -21,5 +21,6 @@ run(Config, AssignmentDir, WorkingDir) ->
     }.
 
 toExec({_, Elm}) ->
-    [File | _] = string:tokens(Elm, ".hs"),
-    "." ++ File.
+    [File | _] = re:replace(Elm, ".hs", ""),
+    Filename = binary:bin_to_list(File),
+    "./" ++ Filename.
