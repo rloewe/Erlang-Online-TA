@@ -95,10 +95,10 @@ handle_cast(
         {{value,{AssignmentID,DirID,SessionToken}},NewQueue} ->
             case dict:find(AssignmentID,State#nodeState.assignments) of
                 {ok,{Pid,AssignDict}} ->
-                    case lists:keysearch(2,free,CurrentJobs) of
+                    case lists:keysearch(free,2,CurrentJobs) of
                         %A FSM is not handling a job
                         {value,{FsmPID,_,_,_}} ->
-                            NewCurrentJobs = lists:keyreplace(1,FsmPID,CurrentJobs,{FsmPID,inuse,SessionToken,{Pid,DirID}}),
+                            NewCurrentJobs = lists:keyreplace(FsmPID,1,CurrentJobs,{FsmPID,inuse,SessionToken,{Pid,DirID}}),
                             spawn(fun() -> start_handin(FsmPID,Pid,DirID,SessionToken) end),
                             {noreply,State#nodeState{currentJobs = NewCurrentJobs,queue = NewQueue}};
                         false ->
@@ -124,10 +124,10 @@ handle_call(
     CurrentJobs = State#nodeState.currentJobs,
     case dict:find(AssignmentID,State#nodeState.assignments) of
         {ok,{Pid,AssignDict}} ->
-            case lists:keysearch(2,free,CurrentJobs) of
+            case lists:keysearch(free,2,CurrentJobs) of
                 %A FSM is not handling a job
                 {value,{FsmPID,_,_,_}} ->
-                    NewCurrentJobs = lists:keyreplace(1,FsmPID,CurrentJobs,{FsmPID,inuse,SessionToken,{Pid,DirID}}),
+                    NewCurrentJobs = lists:keyreplace(FsmPID,1,CurrentJobs,{FsmPID,inuse,SessionToken,{Pid,DirID}}),
                     spawn(fun() ->
                         file:make_dir("./Handins/" ++ DirID),
                         helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
