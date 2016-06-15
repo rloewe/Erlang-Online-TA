@@ -50,15 +50,15 @@ init([MasterNode]) ->
     case connect_to(node(),MasterNode) of
         ok ->
             Queue = queue:new(),
+            MaxJobs = 4,
             Assignments = dict:new(),
-            CurrentJobs = dict:new(),
-            %Supervisor = supervisor:
+            %Currentjobs is a tuplelist of {FSMPid,FSMStatus,SessionToken, HandinArgs}, where HandinArgs is a tuple of remaining args to the given handin
             case helper_functions:create_dirs(["./Modules","./Handins","Assignments"]) of
                 ok ->
                     {ok, #nodeState{
                             queue = Queue,
                             assignments = Assignments,
-                            currentJobs = CurrentJobs,
+                            currentJobs = init_handin_fsms(MaxJobs), %CurrentJobs,
                             masterNode = MasterNode,
                             modules = dict:new(),
                             maxJobs = 4
@@ -74,37 +74,37 @@ init([MasterNode]) ->
 
 
 handle_cast(
-  {update_handin_status,Status,JobState},
+  {update_handin_status,Status,SessionToken},
   State) ->
     MasterNode = State#nodeState.masterNode,
     case Status of
         running ->
-            {FsmPID,FilePath,SessionToken} = JobState,
-            NewCurrentJobs = dict:store(SessionToken,{FilePath, FsmPID},State#nodeState.currentJobs),
             master_server:update_handin_job(SessionToken,running,MasterNode),
-            {noreply,State#nodeState{currentJobs = NewCurrentJobs}};
-        queue ->
-            {AssignmentID,FilePath,SessionToken} = JobState,
-            NewQueue = queue:in({AssignmentID,FilePath,SessionToken},State#nodeState.queue),
+            {noreply,State};
+        queued ->
             master_server:update_handin_job(SessionToken,queued,MasterNode),
-            {noreply,State#nodeState{queue = NewQueue}}
+            {noreply,State}
     end;
 
 
 
 handle_cast(
-  {requeue_job},State) ->
+  {dequeue_job},State) ->
+    CurrentJobs = State#nodeState.currentJobs,
     case queue:out(State#nodeState.queue) of
-        {{value,{AssignmentID,FilePath,SessionToken}},NewQueue} ->
+        {{value,{AssignmentID,DirID,SessionToken}},NewQueue} ->
             case dict:find(AssignmentID,State#nodeState.assignments) of
-                {ok,Assignment} ->
-                    Size = dict:size(State#nodeState.currentJobs),
-                    MaxJobs = State#nodeState.maxJobs,
-                    spawn(fun() ->
-                        Files = helper_functions:load_files_from_dir("./Handins/" ++ FilePath),
-                        queue_handin(Assignment,FilePath,Files,SessionToken,Size,MaxJobs)
-                        end),
-                    {noreply,State#nodeState{queue = NewQueue}};
+                {ok,{Pid,AssignDict}} ->
+                    case lists:keysearch(2,free,CurrentJobs) of
+                        %A FSM is not handling a job
+                        {value,{FsmPID,_,_,_}} ->
+                            NewCurrentJobs = lists:keyreplace(1,FsmPID,CurrentJobs,{FsmPID,inuse,SessionToken,{Pid,DirID}}),
+                            spawn(fun() -> start_handin(FsmPID,Pid,DirID,SessionToken) end),
+                            {noreply,State#nodeState{currentJobs = NewCurrentJobs,queue = NewQueue}};
+                        false ->
+                        %All FSM are inuse do nothing
+                            {noreply,State}
+                    end;
                 error ->
                     {noreply,State}
             end;
@@ -121,16 +121,32 @@ handle_call(
   _From,
   State
  ) ->
-    %TODO move check for maxjobs into server
-    Size = dict:size(State#nodeState.currentJobs),
-    MaxJobs = State#nodeState.maxJobs,
+    CurrentJobs = State#nodeState.currentJobs,
     case dict:find(AssignmentID,State#nodeState.assignments) of
-        {ok,AssignDict} ->
-            spawn(fun() -> queue_handin(AssignDict,DirID, Files,SessionToken,Size,MaxJobs) end),
-            {reply,{ok,received},State};
+        {ok,{Pid,AssignDict}} ->
+            case lists:keysearch(2,free,CurrentJobs) of
+                %A FSM is not handling a job
+                {value,{FsmPID,_,_,_}} ->
+                    NewCurrentJobs = lists:keyreplace(1,FsmPID,CurrentJobs,{FsmPID,inuse,SessionToken,{Pid,DirID}}),
+                    spawn(fun() ->
+                        file:make_dir("./Handins/" ++ DirID),
+                        helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
+                        start_handin(FsmPID,Pid,DirID,SessionToken) end),
+                    {reply,received,State#nodeState{currentJobs = NewCurrentJobs}};
+                false ->
+                    %Queue job instead
+                    NewQueue = queue:in({AssignmentID,DirID,SessionToken},State#nodeState.queue),
+                    spawn(fun() ->
+                        file:make_dir("./Handins/" ++ DirID),
+                        helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
+                        queue_handin(SessionToken)
+                    end),
+                    {reply,received,State#nodeState{queue = NewQueue}}
+            end;
         error ->
             {reply,{error,noassign},State}
     end;
+
 
 handle_call(
   {finish_job,{SessionToken,Res}},
@@ -143,7 +159,7 @@ handle_call(
     helper_functions:delete_dir("./Handins/" ++ FilePath++"/"),
     NewCurrentJobs = dict:erase(SessionToken,State#nodeState.currentJobs),
     master_server:update_handin_job(SessionToken,{finished,Res,node()},State#nodeState.masterNode),
-    gen_server:cast({?MODULE,node()},{requeue_job}),
+    gen_server:cast({?MODULE,node()},{dequeue_job}),
     {reply, ok, State#nodeState{currentJobs = NewCurrentJobs}};
 
 handle_call(
@@ -191,20 +207,22 @@ handle_info(_Message, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVersion, State, _Extra) -> {ok, State}.
 
-queue_handin({Module, AssignDict},DirID,Files,SessionToken,NumJobs,MaxJobs) ->
-    file:make_dir("./Handins/" ++ DirID),
-    helper_functions:save_files(Files,"./Handins/" ++ DirID ++ "/"),
-    if
-        NumJobs < MaxJobs ->
-            {ok, FsmPID} = correct_fsm:start_link({node()}),
-            {ok, Pwd} = file:get_cwd(),
-            correct_fsm:start_job(FsmPID,Module, Pwd ++ "/Handins/" ++ DirID ++ "/",SessionToken),
-            Status = running,
-            Args = {FsmPID,DirID,SessionToken};
-        true ->
-            Status = queue,
-            AssignmentID = dict:fetch("assignmentid",AssignDict),
-            Args = {AssignmentID,DirID,SessionToken}
-    end,
-    gen_server:cast({?MODULE,node()},{update_handin_status,Status,Args}).
+start_handin(FsmPID,Module,DirID,SessionToken) ->
+    %{Module, AssignDict},DirID,SessionToken) ->
+    {ok, Pwd} = file:get_cwd(),
+    correct_fsm:start_job(FsmPID,Module, Pwd ++ "/Handins/" ++ DirID ++ "/",SessionToken),
+    gen_server:cast({?MODULE,node()},{update_handin_status,running,SessionToken}).
 
+
+%Just so queueing jobs and saving is in seperate process
+queue_handin(SessionToken) ->
+    gen_server:cast({?MODULE,node()},{update_handin_status,queued,SessionToken}).
+
+init_handin_fsms(Number) ->
+    init_handin_fsms(Number,[]).
+
+init_handin_fsms(0,FsmList) ->
+    FsmList;
+init_handin_fsms(Number,FsmList) ->
+    {ok,FsmPID} = correct_fsm:start_link({node()}),
+    init_handin_fsms(Number-1,[{FsmPID,free,none,none} | FsmList]).
