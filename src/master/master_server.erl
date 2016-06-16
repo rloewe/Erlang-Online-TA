@@ -83,9 +83,9 @@ handle_cast({nodedown,Node}, State) ->
                             {ok,{AssignID,_,Path}} ->
                                 %TODO fix status update
                                 Files = helper_functions:load_files_from_dir("./Handins/" ++ Path ++ "/"),
-                                Node = lists:nth(random:uniform(NumNodes),Nodes),
-                                Status = queue_handin_job(Node,AssignID,Path,Files,Session),
-                                dict:append(Node,Session,Accum);
+                                NewNode = lists:nth(random:uniform(NumNodes),Nodes),
+                                Status = queue_handin_job(NewNode,AssignID,Path,Files,Session),
+                                dict:append(NewNode,Session,Accum);
                             error ->
                                 Accum
                         end
