@@ -1,4 +1,4 @@
-\section*{Analysis}
+\section{Analysis}
 To create a distributed server structure that can handle load, which most
 likely changes over time. To handle this a master-slave architecture could be
 a good choice. Here the master server should handle everything related to
@@ -7,7 +7,7 @@ correct them. To make the infrastructure more dynamic, slaves servers should be
 able to connect and disconnect at will, so that increasing or decreasing
 workload can be easily handled.
 
-\subsection*{Master server}
+\subsection{Master server}
 As said before, the master server should handle everything related to receiving
 and distributing assignments and handins. This means it has to make sure that we
 create a somewhat equal load on all our nodes and that we monitor our nodes, so
@@ -16,7 +16,7 @@ that submissions send to a node, which crashes before the hand in is corrected,
 is send to another node, such that the submission does not disappear in the
 system.
 Hand ins might also need to be handled with a fairness system in mind, such that
-students can not create a DOS attack by uploading their submissions several
+students can not create a DoS attack by uploading their submissions several
 times in a row.
 The master should also be able to handle different types of assignments, which
 means that there should be a way that these can be described and some way of
@@ -24,7 +24,7 @@ authorizing the users who should be able to upload such.
 The assignments will then have to be distributed to all nodes, also new nodes
 which join at a later stage.
 
-\subsection*{Node server}
+\subsection{Node server}
 The node server has a main goal, which is to correct assignments, but it also
 needs to handle receiving the assignments and queuing them. It also needs to
 make sure that the assignments are run in a secure manner, such that a student
@@ -36,7 +36,7 @@ should be able to run again, if a server error happens, but should be stopped if
 it fails multiple times. This could for example be fixed by monitoring processes
 and restarting them, if they fail.
 
-\subsection*{Sandboxing}
+\subsection{Sandboxing}
 As the system should be able to handle several sandboxes, it should be easy to
 extend it with another one. It should also be possible to restrict access to
 specific resources in the sandbox, e.g. disabling disk or network access.

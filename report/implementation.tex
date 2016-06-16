@@ -59,13 +59,8 @@ The list below specifies the requires parameters, the parameter names are case i
 
 
 
-
-
-
-
 \subsection{Correction process}
-
-
+To correct assignments 
 
 \subsubsection{gen\_assignment}
 To make a module for the correction process we have created a behaviour called
@@ -88,7 +83,7 @@ To make a module for the correction process we have created a behaviour called
     assignment gives back gibberish for either of those two.
 \end{description}
 
-Behind the scenes \textt{gen\_assignment} will do a receive loop where it waits
+Behind the scenes \texttt{gen\_assignment} will do a receive loop where it waits
 for messages and calls the neccessary functions in the module.
 
 To be able to handle as many submissions at a time, then every run call is
@@ -97,7 +92,7 @@ by the module. This means that the \texttt{gen\_assignment} can go back and
 listen for new submissions.
 
 \subsubsection{correct\_fsm}
-The \texttt{correct\_fsm} is implemented as a \texttt{gen_fsm} behaviour with
+The \texttt{correct\_fsm} is implemented as a \texttt{gen\_fsm} behaviour with
 three states.
 \begin{description}
     \item[listen] Here it waits for a submission that it can correct and the
