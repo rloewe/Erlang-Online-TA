@@ -74,15 +74,20 @@ doLoop(State) ->
                         io:format("~p", [Msg]),
                         From ! {error, Msg};
                     {ok, Cmd, StartUpTime} ->
-                        MaxTime = dict:fetch("maxtime", State#state.config),
+                        MaxTime = dict:fetch("maxtime", State#state.config) * 1000 + StartUpTime * 1000,
                         spawn(fun() ->
                                       exec:start([root]),
                                       Pid = spawn(fun () -> getOutput(From, "") end),
                                       io:format("~p", [Pid]),
-                                      exec:run(Cmd, [{stdout,Pid},{stderr,Pid},{kill_timeout, MaxTime}, monitor]),
+                                      {ok, _, I} = exec:run(Cmd, [{stdout,Pid},{stderr,Pid}, monitor]),
                                       receive
                                           {'DOWN', _, _, _, _} ->
                                               Pid ! stahp
+                                      after
+                                          MaxTime ->
+                                            exec:stop(I),
+                                            Pid ! {herp, derp, <<"Execution stopped because it ran out of time">>},
+                                            Pid ! stahp
                                       end
                               end);
                     X ->
