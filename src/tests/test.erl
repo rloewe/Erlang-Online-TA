@@ -1,6 +1,6 @@
 -module (test).
 
--export ([add_docker/0,add_haskell/0,run_docker/0,run_haskell/0]).
+-export ([add_docker/0,add_haskell/0,run_docker/0,run_haskell/0,run_n_docker/1,run_n_haskell/1]).
 
 add_docker() ->
     Master = node(),
