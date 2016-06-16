@@ -1,0 +1,65 @@
+\section{Implementation}
+\subsection{Master server}
+To start the master server, the start function takes a filepath to the config file with specifications, that can be seen ~\ref{sec:config}. Upon startup it loads the values of the config files and sets the cookie specified. It creates 3 directories "/Handins/", "Assignments/" and "/Modules/" that are used to store files uploaded to the server. The master state is a record type that consists of:
+\begin{itemize}
+\item nodes : is a dictionary of nodes as keys and the value is the list of sessiontokens of handin jobs running the node.
+\item sessions : is a dictionary of Sessiontokens as keys and a tuple of \{Assignment ID, Status of the handin job, Name of the directory under /Handins/ the handin files are located\}
+\item assignments : is a dictionary of AssignmentID as keys and a dictionary containing the parsed assignment config information.
+\item modules : is a dictionary where the key is the name of the module as an atom and the value is the filename of the module located under /Modules/
+\item queue : is a queue containing handin jobs if a node crashes and no other is available
+\item userSockets : a list of connected sockets from the webserver
+\end{itemize}
+
+When a new node connects, the master distributes out the known assignments and modules to the new node, along with any queued handins.
+
+
+
+
+
+
+
+
+
+When the master server initiates it spawns a monitor that monitors all nodes connecting and disconnecting to the master, it creates 3 directories where it saves files to,
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Specifications of files}
+\subsubsection{Configfile}
+\label{sec:config}
+The config file seperates each parameter by a newline, where each parameter is specified as param = value.
+The list below specifies the requires parameters, the parameter names are case sensitive.
+\begin{itemize}
+    \item Cookie : Required by both master and node, is the name of the cookie the server and nodes run on.
+    \item Master : Required in the node server only, the value is name@hostname, name is the name of the master server specified upon startup of the master, and hostname is the hostname the master server runs under.
+\end{itemize}
+\subsubsection{AssignmentConfigFile}
+\label{sec:assignment}
+The assignment config files seperates each parameter by a newline, where each parameter is specified as param = value. If multiple values are required they are comma seperated, but still on one line. A default variable name called "defaults.conf" is required, containing the not required fields.
+The list below specifies the requires parameters, the parameter names are case insensitive.
+\begin{itemize}
+    \item assignmentid : Required field, value is the name of the assignment.
+    \item module : Required field, name is the module the assignment wants to use, requires the module to be uploaded to the server.
+    \item runorder : Required field, comma seperated values, the values is the filename of the scripts to be run in the given order.
+    \item required\_libs : Required field, commma seperated values, the name of the libaries the assignment needs to run a handin. If no libs are required the value must be required\_libs =
+    \item disk : Not required field, must be either the value enabled or disabled. If this field is not present it is set to default value.
+    \item network : Not required field, must be either the value enabled or disabled. If this field is not present it is set to default value.
+    \item maxmem : Not required field, must be a integer value. If this field is not present it is set to default value.
+    \item maxtime : Not required field, must be a integer value. If this field is not present it is set to default value.
+\end{itemize}
+
+
+
+
+
+
+
