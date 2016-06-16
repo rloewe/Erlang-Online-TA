@@ -33,5 +33,5 @@ run_docker() ->
     master_server:send_handin("hello",[{"wat.py",Binary}],node()).
 
 run_haskell() ->
-    {ok,Binary} = file:read_file("/root/assignment2/Matematik.hs"),
+    {ok,Binary} = file:read_file("/root/ass2handin/Matematik.hs"),
     master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node()).
