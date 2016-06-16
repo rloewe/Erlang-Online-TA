@@ -1,6 +1,6 @@
 -module (test).
 
--export ([add_docker/0,add_haskell/0,run_docker/0,run_haskell/0]).
+-export ([add_docker/0,add_haskell/0,run_docker/0,run_haskell/0,run_n_docker/1,run_n_haskell/1]).
 
 add_docker() ->
     Master = node(),
@@ -32,6 +32,22 @@ run_docker() ->
     {ok,Binary} = file:read_file("/root/assignment/handin.py"),
     master_server:send_handin("hello",[{"wat.py",Binary}],node()).
 
+run_n_docker(1) ->
+    {ok,Binary} = file:read_file("/root/assignment/handin.py"),
+    master_server:send_handin("hello",[{"wat.py",Binary}],node());
+run_n_docker(N) ->
+    {ok,Binary} = file:read_file("/root/assignment/handin.py"),
+    master_server:send_handin("hello",[{"wat.py",Binary}],node()),
+    run_n_docker(N-1).
+
 run_haskell() ->
-    {ok,Binary} = file:read_file("/root/assignment2/Matematik.hs"),
+    {ok,Binary} = file:read_file("/root/ass2handin/Matematik.hs"),
     master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node()).
+
+run_n_haskell(1) ->
+    {ok,Binary} = file:read_file("/root/ass2handin/Matematik.hs"),
+    master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node());
+run_n_haskell(N) ->
+    {ok,Binary} = file:read_file("/root/ass2handin/Matematik.hs"),
+    master_server:send_handin("hello2",[{"Matematik.hs",Binary}],node()),
+    run_n_haskell(N-1).

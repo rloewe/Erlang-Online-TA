@@ -1,0 +1,46 @@
+\section{Improvements}
+The code we have made, in this project, is not complete nor perfect. Therefore
+we have this part of our report to discuss new features or improvements to the
+project.
+
+\subsection{Remove/update assignments and modules}
+Currently it is not possible to update or remove assignments and modules. This
+should be a feature in the future.
+
+\subsection{Better error handling}
+
+\subsection{DoS protection/fairness algorithm}
+As written in the analysis, DoS protection through a scheduling algorithm with
+fairness would have been a great thing to implement in this project.
+
+\subsection{Better interface}
+Currently the web-interface for the project is very sparse and not very good.
+It basically just shows that we are able to do some communication with the
+master server. This should definitely be improved such that different people get
+access to different parts of the system, e.g. lecturers should be able to upload
+assignments and students should be able to submit assignments.
+
+Another thing would be to design an interface that is nice to look at. But as we
+are Computer Science students, we normally think command line interfaces are
+good enough and therefore we should probably not be the ones to design it.
+
+\subsection{Date range for assignments}
+A nice feature to add would be to add a date range for the assignments, such
+that they only are active during that period. Of course it should also be
+possible to circumvent that date range for certain people, so they can test it
+before it launches.
+
+\subsection{Possibility to get correction output from file}
+Currently it is only possible to get correction output from \texttt{stdout}. It
+would be nice if it was also possible to get that output from a file. This
+should be implemented as an extra field in the assignment configuration and then
+the correction scripts that are being run should then write that file.
+
+\begin{itemize}
+    \item error handling, especially in regards to build in gen\_assignment and
+    add module (maybe use compile:file)
+    \item Run scripts out of sandbox
+    \item monitor correct\_fsms
+    \item security, auth (restrict assignments to specific users)
+    \item supervision trees
+\end{itemize}

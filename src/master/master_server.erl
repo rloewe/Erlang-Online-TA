@@ -83,9 +83,9 @@ handle_cast({nodedown,Node}, State) ->
                             {ok,{AssignID,_,Path}} ->
                                 %TODO fix status update
                                 Files = helper_functions:load_files_from_dir("./Handins/" ++ Path ++ "/"),
-                                Node = lists:nth(random:uniform(NumNodes,Nodes)),
-                                Status = queue_handin_job(Node,AssignID,Path,Files,Session),
-                                dict:append(Node,Session,Accum);
+                                NewNode = lists:nth(random:uniform(NumNodes),Nodes),
+                                Status = queue_handin_job(NewNode,AssignID,Path,Files,Session),
+                                dict:append(NewNode,Session,Accum);
                             error ->
                                 Accum
                         end
@@ -112,6 +112,7 @@ handle_cast({update_job,SessionToken,NewStatus}, State) ->
                     {_,_,DirID} = dict:fetch(SessionToken,State#masterState.sessions),
                     helper_functions:delete_dir("./Handins/" ++ DirID ++ "/"),
                     NewSessions = dict:erase(SessionToken,State#masterState.sessions),
+                    io:format("Jobs left: ~p \n", [dict:size(NewSessions)]),
                     RemoveFun = fun(List) -> lists:delete(SessionToken,List) end,
                     NewNodes = dict:update(Node,RemoveFun,State#masterState.nodes),
                     {noreply, State#masterState{nodes=NewNodes,sessions=NewSessions}};

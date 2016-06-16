@@ -107,7 +107,6 @@ getOutput(From, Output) ->
     %TODO: fix timeout
     receive
         {_,_,Msg} ->
-            io:format("~p", [Msg]),
             getOutput(From, Output ++ binary:bin_to_list(Msg));
         stahp ->
             job_done(From, {ok, Output})
