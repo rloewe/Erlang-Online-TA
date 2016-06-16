@@ -1,3 +1,4 @@
+<<<<<<< bf98c3273298c542a93bf84101646806d98866ab
 \section{Implementation}
 \subsection{Master server}
 To start the master server, the start function takes a filepath to the config file with specifications, that can be seen ~\ref{sec:config}. Upon startup it loads the values of the config files and sets the cookie specified. It creates 3 directories "/Handins/", "Assignments/" and "/Modules/" that are used to store files uploaded to the server. The master state is a record type that consists of:
@@ -63,3 +64,52 @@ The list below specifies the requires parameters, the parameter names are case i
 
 
 
+\subsection{Correction process}
+
+
+
+\subsubsection{gen\_assignment}
+To make a module for the correction process we have created a behaviour called
+\texttt{gen\_assignment}. It requires 3 callback functions:
+\begin{description}
+    \item[setup(AssignmentConfig, WorkingDir)] which shall ready the setup
+    process, for example making all files ready to create a docker container.
+    It should return either \texttt{done}, \texttt{\{error, ErrorMsg\}} or
+    \texttt{\{doCmd, Cmd\}}.
+    \item[teardown(AssignmentConfig, WorkingDir)] is run, when the assignment is
+    removed from the server and it should therefore ready the termination
+    process. It should return either \texttt{done}, \texttt{\{error, ErrorMsg\}}
+    or \texttt{\{doCmd, Cmd\}}.
+    \item[run(AssignmentConfig, AssignmentDir, WorkingDir)] which shall make a
+    submission ready to run. It is expected to return either
+    \texttt{\{error, ErrorMsg\}}, if it fails, or
+    \texttt{\{ok, Cmd, StartUpTime\}}, where \texttt{Cmd} will be run as a shell
+    command. It can also throw an error using \texttt{erlang:error}, which
+    should be either \texttt{disk} or \texttt{network}, if the config for the
+    assignment gives back gibberish for either of those two.
+\end{description}
+
+Behind the scenes \textt{gen\_assignment} will do a receive loop where it waits
+for messages and calls the neccessary functions in the module.
+
+To be able to handle as many submissions at a time, then every run call is
+handled in its own process, when the command it needs to run has been generated
+by the module. This means that the \texttt{gen\_assignment} can go back and
+listen for new submissions.
+
+\subsubsection{correct\_fsm}
+The \texttt{correct\_fsm} is implemented as a \texttt{gen_fsm} behaviour with
+three states.
+\begin{description}
+    \item[listen] Here it waits for a submission that it can correct and the
+    assignment that should correct it.
+    \item[correction] Runs \texttt{gen\_assignment:run} with the given
+    submission and assignment.
+    \item[finished] Wait for answer from the \texttt{gen\_assignment} call and
+    when it receives it return it to the \texttt{node\_server}.
+\end{description}
+
+The reason for dividing \texttt{correct\_fsm} and \texttt{gen\_assignment} into
+two different processes was to make it possible to start a fixed number of
+\texttt{correct\_fsm} processes at startup and then make them able to correct
+all sorts of assignments.
