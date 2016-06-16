@@ -86,7 +86,7 @@ doLoop(State) ->
                                       after
                                           MaxTime ->
                                             exec:stop(I),
-                                            Pid ! {herp, derp, "Execution stopped because it ran out of time"},
+                                            Pid ! {herp, derp, <<"Execution stopped because it ran out of time">>},
                                             Pid ! stahp
                                       end
                               end);
