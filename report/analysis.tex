@@ -9,10 +9,10 @@ decreasing workload can be easily handled.
 
 \section{Master server}
 As said before, the master server should handle everything related to receiving
-and distributing assignments and handins. This means it has to make sure that we
+and distributing assignments and submissions. This means it has to make sure that we
 create a somewhat equal load on all our nodes and that we monitor our nodes, so
 we do not send submissions to non-responding servers. It also has to make sure
-that submissions send to a node, which crashes before the hand in is corrected,
+that submissions send to a node, which crashes before the submission is corrected,
 is send to another node, such that the submission does not disappear in the
 system.
 Hand ins might also need to be handled with a fairness system in mind, such that
@@ -25,13 +25,13 @@ The assignments will then have to be distributed to all nodes, also new nodes
 which join at a later stage.
 
 \section{Node server}
-The node server has a main goal, which is to correct assignments, but it also
-needs to handle receiving the assignments and queuing them. It also needs to
+The node server has a main goal, which is to correct submissions, but it also
+needs to handle receiving assignments and queuing submissions. It also needs to
 make sure that the assignments are run in a secure manner, such that a student
-will no be able to read other students assignments and/or mess with the system.
+will no be able to read other students submissions and/or mess with the system.
 This can be fixed in multiple ways and might be different for each assignment,
 therefore the system should be able to handle this.
-Error handling is also something the nodes should do, for example an assignment
+Error handling is also something the nodes should do, for example a submission
 should be able to run again, if a server error happens, but should be stopped if
 it fails multiple times. This could for example be fixed by monitoring processes
 and restarting them, if they fail.

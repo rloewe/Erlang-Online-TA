@@ -5,34 +5,34 @@ In this part we aim to enlighten you on how our implementation is made and how
 it works.
 
 \section{Master server}
-To start the master server, the start function takes a filepath to the configuartion file with specifications, that can be seen ~\ref{sec:config}. It is also required that the there is a default.conf file in the directory where the master server is started from. Upon startup it loads the values of the configuartion files and sets the cookie specified. It creates 3 directories Handins, Assignments and Modules that are used to store files uploaded to the server and creates a new process alongside the master server to monitor connecting and disconnecting nodes. The master state is a record type that consists of:
+To start the master server, the start function takes a filepath to the configuration file with specifications, that can be seen ~\ref{sec:config}. It is also required that the there is a default.conf file in the directory where the master server is started from. Upon startup it loads the values of the configuration files and sets the cookie specified. It creates 3 directories Handins, Assignments and Modules that are used to store files uploaded to the server and creates a new process alongside the master server to monitor connecting and disconnecting nodes. The master state is a record type that consists of:
 \begin{description}
     \item[nodes] Is a dictionary of nodes as keys and the value is the list of sessiontokens of submissions running the node.
 \item [sessions] Is a dictionary of Sessiontokens as keys and a tuple of \{Assignment ID, Status of the submission, Name of the directory in Handins the submission files are located\}
-\item [assignments]  is a dictionary of AssignmentID as keys and a dictionary containing the parsed assignment configuartion information.
+\item [assignments]  is a dictionary of AssignmentID as keys and a dictionary containing the parsed assignment configuration information.
 \item [modules]  is a dictionary where the key is the name of the module as an atom and the value is the filename of the module located in the modules Modules
 \item [queue] Contains the submissions if a node crashes and no other is available
 \item [userSockets] A list of connected sockets from the webserver
 \end{description}
-If a node connects to the master, the master server spawns a process to send all current modules and assignments that have been added to the master server since startup. When adding modules to the system, the master server saves the given binary of the modules beam file in the Modules directory with the given module name, and updates the modules dictionary in the master state. When adding an assignment, the assignment configuartion file is checked if it is valid based on the specifications of ~\ref{sec:assignment}, if validated a folder with the assignment id is created in the Assignments directory where the required files are saved. When adding either modules or assignments the server will spawn a process that distributes the new module or assignment to all connected nodes to keep the server responsive.
+If a node connects to the master, the master server spawns a process to send all current modules and assignments that have been added to the master server since startup. When adding modules to the system, the master server saves the given binary of the modules beam file in the Modules directory with the given module name, and updates the modules dictionary in the master state. When adding an assignment, the assignment configuration file is checked if it is valid based on the specifications of ~\ref{sec:assignment}, if validated a folder with the assignment id is created in the Assignments directory where the required files are saved. When adding either modules or assignments the server will spawn a process that distributes the new module or assignment to all connected nodes to keep the server responsive.
 
-Submissions are handled by checking if the given assignment ID is valid, if the assignment id is valid a sessiontoken is created by using \texttt{makeref}\footnote{\url{http://erlang.org/doc/man/erlang.html\#make_ref-0}}. The server spawns a process to save the files locally in a unqiue directory in Handins and send the files, session token and assignment id to a node server to start a submission. The master responds to the sender with the session token and a status stating the submission is receieved. Submissions are updated when the node server sends an asynchronous messages to the master with the updated status, it informs the user with the given session token with the status update and the result if the job is finished. If a job is finished, the master server deletes the submission files from the unique directory in Handins.
+Submissions are handled by checking if the given assignment ID is valid, if the assignment id is valid a session token is created by using \texttt{makeref}\footnote{\url{http://erlang.org/doc/man/erlang.html\#make_ref-0}}. The server spawns a process to save the files locally in a unqiue directory in Handins and send the files, session token and assignment id to a node server to start a submission. The master responds to the sender with the session token and a status stating the submission is receieved. Submissions are updated when the node server sends an asynchronous messages to the master with the updated status, it informs the user with the given session token with the status update and the result if the job is finished. If a job is finished, the master server deletes the submission files from the unique directory in Handins.
 
 The distribution over nodes is done at random, this should generate an even distribution of submissions over the nodes. Although this does not ensure equal load on the node servers as it does not distinguish between general workload of the jobs. If a node dies with running jobs, the monitor gets notified and makes a asynchronous message to the master. The master then redistributes the jobs over the remaining nodes, if no nodes are available the jobs are put into queue and restarted when a new node connects.
 \section{Node server}
-The node server reads the configuartion file and creates the same 3 directories as the master on startup, it initiates a number of correction process finite state machines, the number is currently hardcoded in init call. The node states record type is defined as:
+The node server reads the configuration file and creates the same 3 directories as the master on startup, it initiates a number of correction process finite state machines, the number is currently hardcoded in init call. The node states record type is defined as:
 \begin{description}
-     \item [queue] Contains submission waiting to be started on the correction FSM, the item in the queue is a 3 tuple consistant of \{Assignment ID, Path name to submission files in Handins, Session token of the submission\}
-     \item [assignments] A dictionary with assignment ID as key and tuple as value \{Pid to the gen assigment for the requested module, Assignment dictionary containing relevant information of a assignment configuartion\}
-     \item [currentJobs] a tuple list where the tuple is defined as : \{FsmPID : PID to a started correction process, FsmStatus : is either free or inuse, SessionToken: The sessiontoken of the job running or none, SubmissionArgs : Tuple containing relevant arguments to the correction process\}.
-     \item [masterNode] The masternode node name.
-     \item [modules]  A dictionary with modulename as key and the running module on the node server as value.
+     \item [queue] Contains submission waiting to be started on the correction FSM, the item in the queue is a 3 tuple consistent of \{Assignment ID, Path name to submission files in Handins, Session token of the submission\}
+     \item [assignments] A dictionary with assignment ID as key and tuple as value \{Pid to the gen assignment for the requested module, Assignment dictionary containing relevant information of a assignment configuration\}
+     \item [currentJobs] a tuple list where the tuple is defined as : \{FsmPID : PID to a started correction process, FsmStatus : is either free or inuse, SessionToken: The session token of the job running or none, SubmissionArgs : Tuple containing relevant arguments to the correction process\}.
+     \item [masterNode] The master node node name.
+     \item [modules]  A dictionary with module name as key and the running module on the node server as value.
  \end{description}
 When adding a module to the node, it loads the module into the node server and saves the binary file.
 
 If the master server adds an assignment to the node, it saves the assignment files in the Assignment folder and calls the \texttt{gen\_assignment} build process in a new process with the specifications to the given sandbox requested and builds the required image for the submission jobs.
 
-When a job is received, the node looks thought the currentjobs tuplelist for a free FSM, if a FSM is found the currentJobs is updated with relevant informations and marked as inuse and a call to the FSM is issued to start the correction process. If all FSM's are in use they are put into the queue. The node server sends a asynchronous message to the master server updating the relevant status of the submission. After a job is finished, the node server updates the master with the result and status and dequeues a job onto an available FSM.
+When a job is received, the node looks throught the currentJobs tuplelist for a free FSM, if a FSM is found the currentJobs is updated with relevant informations and marked as inuse and a call to the FSM is issued to start the correction process. If all FSM's are in use they are put into the queue. The node server sends a asynchronous message to the master server updating the relevant status of the submission. After a job is finished, the node server updates the master with the result and status and dequeues a job onto an available FSM.
 
 \section{Correction process}
 To correct assignments we need a way to sandbox them. But we do not expect that
@@ -57,19 +57,19 @@ To make a module for the correction process we have created a behaviour called
     \texttt{\{error, ErrorMsg\}}, if it fails, or
     \texttt{\{ok, Cmd, StartUpTime\}}, where \texttt{Cmd} will be run as a shell
     command. It can also throw an error using \texttt{erlang:error}, which
-    should be either \texttt{disk} or \texttt{network}, if the configuartion for the
+    should be either \texttt{disk} or \texttt{network}, if the configuration for the
     assignment gives back gibberish for either of those two.
 \end{description}
 
 Behind the scenes \texttt{gen\_assignment} will do a receive loop where it waits
-for messages and calls the neccessary functions in the module.
+for messages and calls the necessary functions in the module.
 
 To be able to handle as many submissions at a time, then every run call is
 handled in its own process, when the command it needs to run has been generated
 by the module. This means that the \texttt{gen\_assignment} can go back and
 listen for new submissions.
 
-We have created and tested two modules during the project using docker and safe
+We have created and tested two modules during the project using docker and Safe
 Haskell. A description of those can be found in the appendix.
 
 \subsection{correct\_fsm}
@@ -93,16 +93,16 @@ all sorts of assignments.
 We set out with a plan that a web interface should be possible to make in this
 project, but we must say, that it did not go as easy as we would have liked.
 
-First we were trying to find a suitable webserver, which we could use. We ended
+First we were trying to find a suitable web server, which we could use. We ended
 up with Cowboy, which was not a bad choice, but it took some too much time to
 get to work properly. So the web interface we have created is very basic as it
 can add an assignment, send a submission and get events from the master server.
 
-\chapter{Quality assesment}
-The testing is done to see how the core features of the program perform and how error handling holds up thoughout the program. The tests checks if the system works as expected, how it reacts if in cases where the assignments or modules have not been added before sending in submissions and where the input binaries given to the program are ill formed.
+\chapter{Quality assessment}
+The testing is done to see how the core features of the program perform and how error handling holds up throughout the program. The tests checks if the system works as expected, how it reacts if in cases where the assignments or modules have not been added before sending in submissions and where the input binaries given to the program are ill formed.
 
-The tests show that adding assignments or starting submissions before their dependant module or assignment have been added, will respond to the user with an appropiate error message. Adding a bad module file to the system will cause the master to accept it and save it, but the node will not load it and not allow assignments to use the specific module. The master will still accept assignments configuartion dependant on the bad module, but the node will not accept the assignment as the module does not exist on it. If a submission is send afterwards, an error from the node server is propegated back to the user that the assignment is not valid. When adding a bad formed assignment configuartion file, the master server will crash. If a valid erlang module is added, that causes the build or run process in the \texttt{gen\_assignment} to produce an error, the node server will crash if an submission is added using the specific module.
+The tests show that adding assignments or starting submissions before their dependant module or assignment have been added, will respond to the user with an appropriate error message. Adding a bad module file to the system will cause the master to accept it and save it, but the node will not load it and not allow assignments to use the specific module. The master will still accept assignments configuration dependant on the bad module, but the node will not accept the assignment as the module does not exist on it. If a submission is send afterwards, an error from the node server is propagated back to the user that the assignment is not valid. When adding a bad formed assignment configuration file, the master server will crash. If a valid erlang module is added, that causes the build or run process in the \texttt{gen\_assignment} to produce an error, the node server will crash if an submission is added using the specific module.
 
-Performance wise we tested starting running 1000 simple haskell submissions on 4 nodes, the submission compiles and computes the faculty function of 5 and 10. The 1000 submissions took around 2 mins and 20 seconds. If we took down nodes while running the submissions, the submissions would be distributed to the other connected nodes. The master server would queue remaining submissions if all nodes went down, and restart them when a new node connected with no submissions disapering.
+Performance wise we tested starting running 1000 simple Haskell submissions on 4 nodes, the submission compiles and computes the faculty function of 5 and 10. The 1000 submissions took around 2 mins and 20 seconds. If we took down nodes while running the submissions, the submissions would be distributed to the other connected nodes. The master server would queue remaining submissions if all nodes went down, and restart them when a new node connected with no submissions disappearing.
 
-We are satisfied with the performance of the system, and that redistribution is done if a node dies without the loss of submissions. The error handling is lacking in multiple places thoughout the program and that ill formed input will cause crashes of either master or the nodes.
+We are satisfied with the performance of the system, and that redistribution is done if a node dies without the loss of submissions. The error handling is lacking in multiple places throughout the program and ill formed input will cause crashes of either master or the nodes.
