@@ -1,0 +1,24 @@
+\chapter{Correction Modules}
+Correction modules using \texttt{gen\_assignment} is a vital part of the system
+as they enable the addition of new sandboxes.
+
+In this project we created two different modules, one using docker and one using
+Safe Haskell. The reason we chose those two was to show that these two very
+different types of "sandboxes" were possible to implement.
+
+The first module we made was the docker module. In the \texttt{setup} function,
+it makes a Dockerfile which installs all the required packages, creates a user
+called correction and copies the correction scripts. It then returns a command
+that the \texttt{gen\_assignment} module will run.
+The \texttt{teardown} function simply removes the docker image that was created.
+In the \texttt{run} function, it is check whether disk and/or network is allowed
+before it gives back a command, which starts a container with the correct
+properties and the submission directory mapped to it.
+\lstinputlisting{../src/lib/docker.erl}
+
+The Safe Haskell module is a little smaller. In both the \texttt{setup} and
+\texttt{teardown} functions both gives back \texttt{done} as nothing is required
+to set up or remove it. In the \texttt{run} function, it creates a command which
+copies the correction scripts into the handin folder compiles it with ghc and
+runs what comes out.
+\lstinputlisting{../src/lib/safehaskell.erl}
