@@ -65,11 +65,10 @@ no_module_test() ->
     Master = node(),
     add_assignment("/root/assignment2/assignment.conf",["/root/assignment2/Test.hs"],Master).
 
-bad_module_test() ->
-    master_server:add_module(test,<<"BAD MODULE">>,node()).
-
 %Test that will crash the server
 bad_assignment_test() ->
     master_server:add_assignment(<<"Bad file">>,[],node()).
 
-
+bad_module_test() ->
+    master_server:add_module(safehaskell,<<"got you good">>,node()),
+    add_assignment("/root/assignment2/assignment.conf",["/root/assignment2/Test.hs"],node()).
