@@ -89,7 +89,16 @@ two different processes was to make it possible to start a fixed number of
 \texttt{correct\_fsm} processes at startup and then make them able to correct
 all sorts of assignments.
 
-\section{Quality assesment}
+\section{Web interface}
+We set out with a plan that a web interface should be possible to make in this
+project, but we must say, that it did not go as easy as we would have liked.
+
+First we were trying to find a suitable webserver, which we could use. We ended
+up with Cowboy, which was not a bad choice, but it took some too much time to
+get to work properly. So the web interface we have created is very basic as it
+can add an assignment, send a submission and get events from the master server.
+
+\chapter{Quality assesment}
 The testing is done to see how the core features of the program perform and how error handling holds up thoughout the program. The tests checks if the system works as expected, how it reacts if in cases where the assignments or modules before sending in submissions and where the input binaries given to the program are ill formed.
 
 The tests show that adding assignments or starting submissions before their dependant module or assignment have been added, will respond to the user with an appropiate error message. Adding a bad module file to the system will cause the master to accept it and save it, but the node will not load it and not allow assignments to use the specific module. The master will still accept assignments configuartion dependant on the bad module, but the assignment wont accept on the node as the module does not exist on it. If a submission is send, an error from the node server is propegated back to the user that the assignment is not valid. When adding a bad formed assignment configuartion file, the master server will crash. If the erlang module is added that can compile and load, but contains an error for the build or run process, the node server will crash if an submission is added using the specific module.
