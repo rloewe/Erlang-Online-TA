@@ -104,7 +104,6 @@ doLoop(State) ->
     doLoop(State).
 
 getOutput(From, Output) ->
-    %TODO: fix timeout
     receive
         {_,_,Msg} ->
             getOutput(From, Output ++ binary:bin_to_list(Msg));
