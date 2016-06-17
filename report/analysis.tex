@@ -37,8 +37,9 @@ it fails multiple times. This could for example be fixed by monitoring processes
 and restarting them, if they fail.
 
 \subsection{Sandboxing}
-As the system should be able to handle several sandboxes, it should be easy to
-extend it with another one. It should also be possible to restrict access to
+The system should be able to handle several types of sandboxes, as one type of sandbox
+might not be suitable for all types of assignments or required in some cases. It should
+be easy to add additional sandboxes to the system. It should also be possible to restrict access to
 specific resources in the sandbox, e.g. disabling disk or network access.
 It should also be possible to limit them in other ways, for example by setting
 a max runtime or max memory usage.
