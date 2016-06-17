@@ -1,0 +1,23 @@
+\section{Specifications of files}
+\subsection{Configfile}
+\label{sec:config}
+The configuartion file seperates each parameter by a newline, where each parameter is specified as param = value.
+The list below specifies the requires parameters, the parameter names are case sensitive.
+\begin{description}
+    \item[Cookie] Required by both master and node, is the name of the cookie the server and nodes run on.
+    \item[Master] Required in the node server only, the value is name@ip, name is the name of the master server specified upon startup of the master.
+\end{description}
+\subsection{AssignmentConfigFile}
+\label{sec:assignment}
+The assignment configuartion files seperates each parameter by a newline, where each parameter is specified as param = value. If multiple values are required they are comma seperated, but still on one line. A default variable name called "defaults.conf" is required, containing the not required fields.
+The list below specifies the requires parameters, the parameter names are case insensitive.
+\begin{description}
+    \item [assignmentid] Required field, value is the name of the assignment.
+    \item [module] Required field, name is the module the assignment wants to use, requires the module to be uploaded to the server.
+    \item [runorder] Required field, comma seperated values, the values is the filename of the scripts to be run in the given order. A script can be marked to be run outside the requested module sandbox, this is specified as unsafe $<$Value$>$.
+    \item [required\_libs] Required field, commma seperated values, the name of the libaries the assignment needs to run a submissions. If no libs are required the value must be \texttt{required\_libs =}
+    \item [disk] Not required field, must be either enabled or disabled. If this field is not present it is set to default value.
+    \item [network] Not required field, must be either enabled or disabled. If this field is not present it is set to default value.
+    \item [maxmem] Not required field, must be a integer value. If this field is not present it is set to default value.
+    \item [maxtime] Not required field, must be a integer value. If this field is not present it is set to default value.
+\end{description}

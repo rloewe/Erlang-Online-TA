@@ -1,4 +1,9 @@
 \section{Implementation}
+The implementation of the system has been done as a master-slave architecture
+with the slaves (called nodes afterwards) uses FSM to correct assignments.
+In this part we aim to enlighten you on how our implementation is made and how
+it works.
+
 \subsection{Master server}
 To start the master server, the start function takes a filepath to the configuartion file with specifications, that can be seen ~\ref{sec:config}. It is also required that the there is a default.conf file in the directory where the master server is started from. Upon startup it loads the values of the configuartion files and sets the cookie specified. It creates 3 directories Handins, Assignments and Modules that are used to store files uploaded to the server and creates a new process alongside the master server to monitor connecting and disconnecting nodes. The master state is a record type that consists of:
 \begin{description}
@@ -64,6 +69,9 @@ handled in its own process, when the command it needs to run has been generated
 by the module. This means that the \texttt{gen\_assignment} can go back and
 listen for new submissions.
 
+We have created and tested two modules during the project using docker and safe
+Haskell. A description of those can be found in the appendix.
+
 \subsubsection{correct\_fsm}
 The \texttt{correct\_fsm} is implemented as a \texttt{gen\_fsm} behaviour with
 three states.
@@ -80,29 +88,6 @@ The reason for dividing \texttt{correct\_fsm} and \texttt{gen\_assignment} into
 two different processes was to make it possible to start a fixed number of
 \texttt{correct\_fsm} processes at startup and then make them able to correct
 all sorts of assignments.
-\subsection{Specifications of files}
-\subsubsection{Configfile}
-\label{sec:config}
-The configuartion file seperates each parameter by a newline, where each parameter is specified as param = value.
-The list below specifies the requires parameters, the parameter names are case sensitive.
-\begin{description}
-    \item[Cookie] Required by both master and node, is the name of the cookie the server and nodes run on.
-    \item[Master] Required in the node server only, the value is name@ip, name is the name of the master server specified upon startup of the master.
-\end{description}
-\subsubsection{AssignmentConfigFile}
-\label{sec:assignment}
-The assignment configuartion files seperates each parameter by a newline, where each parameter is specified as param = value. If multiple values are required they are comma seperated, but still on one line. A default variable name called "defaults.conf" is required, containing the not required fields.
-The list below specifies the requires parameters, the parameter names are case insensitive.
-\begin{description}
-    \item [assignmentid] Required field, value is the name of the assignment.
-    \item [module] Required field, name is the module the assignment wants to use, requires the module to be uploaded to the server.
-    \item [runorder] Required field, comma seperated values, the values is the filename of the scripts to be run in the given order. A script can be marked to be run outside the requested module sandbox, this is specified as unsafe $<$Value$>$.
-    \item [required\_libs] Required field, commma seperated values, the name of the libaries the assignment needs to run a submissions. If no libs are required the value must be \texttt{required\_libs =}
-    \item [disk] Not required field, must be either enabled or disabled. If this field is not present it is set to default value.
-    \item [network] Not required field, must be either enabled or disabled. If this field is not present it is set to default value.
-    \item [maxmem] Not required field, must be a integer value. If this field is not present it is set to default value.
-    \item [maxtime] Not required field, must be a integer value. If this field is not present it is set to default value.
-\end{description}
 
 \section{Quality assesment}
 

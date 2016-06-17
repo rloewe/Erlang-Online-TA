@@ -1,9 +1,19 @@
-\documentclass{article}
+\documentclass{report}
 \usepackage[utf8]{inputenc}
 %\usepackage [danish]{babel} % Vi burde ikke have brug for den her
 \usepackage[a4paper, hmargin={2.8cm, 2.8cm}, vmargin={2.5cm, 2.5cm}]{geometry}
 \usepackage{eso-pic} % \AddToShipoutPicture
 \usepackage{graphicx} % \includegraphics
+
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[parfill]{parskip}
+\usepackage{lscape}
+\usepackage{enumerate}
+
+\usepackage[paper=A4,pagesize]{typearea}
+\usepackage[toc,page]{appendix}
+\usepackage[danish,english]{babel}
 
 % Så er der header
 \usepackage{fancyhdr}
@@ -11,6 +21,7 @@
 \pagestyle{fancy}
 \rhead[\today]{\today}
 
+\usepackage{wallpaper} % For the frontpage background
 \usepackage{wrapfig, blindtext}
 \usepackage{array}
 \usepackage{import}
@@ -18,22 +29,21 @@
 \usepackage{verbatim}
 \usepackage{todonotes}
 \usepackage{algorithm}
-\usepackage{float}
 \linespread{1.2}
 \usepackage{pbox}
 \usepackage{amsthm} 
-\usepackage{amsmath}
 \usepackage{url}
-\usepackage{listings}
-\lstset{language=C++,
-           basicstyle=\ttfamily,
-           keywordstyle=\color{blue}\ttfamily,
-           stringstyle=\color{red}\ttfamily,
-           frame = single,
-           commentstyle=\color{green}\ttfamily,
-           breaklines=true,
-           numbers=left
-          }
+\usepackage{stmaryrd}
+
+\usepackage{color}
+\usepackage{fancyvrb}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amssymb}
+
+\usepackage{caption}
+\usepackage{subcaption}
 \usepackage[toc,page]{appendix}
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata,fit,positioning}
@@ -55,25 +65,147 @@
 \newtheorem{mydef}{Definition}
 \newtheorem{myex}{Example}[section]
 \usepackage{caption}
+\usepackage{subcaption}
 \DeclareMathOperator*{\argmin}{arg\,min}
 
+\usepackage{listings}
+\lstset{
+           language=erlang,
+           basicstyle=\ttfamily,
+           keywordstyle=\color{blue}\ttfamily,
+           stringstyle=\color{red}\ttfamily,
+           frame = single,
+           commentstyle=\color{green}\ttfamily,
+           numbersep=5pt,
+           breaklines=true,
+           showspaces=false,
+           showstringspaces=false,
+           showtabs=false,
+           numbers=left
+          }
 
-\title{
-  \vspace{3cm}
-  \Huge{Scalable backend for Online TA} \\
-  \Large{Simon Nicolai Lefoli Maibom - xvm226 \\ René Løwe Jacobsen - vlx198}
-}
-
-\usepackage{natbib}
-\usepackage{graphicx}
-\usepackage{amssymb}
 
 \newcommand{\myfl}{\left\lfloor}
 \newcommand{\myfr}{\right\rfloor}
 \newcommand{\mycl}{\left\lceil}
 \newcommand{\mycr}{\right\rceil}
+
+\newcommand{\theassignment}{Scalable backend for Online TA}
+\newcommand{\thesubassignment}{}
+\newcommand{\shorttheassignment}{Online TA}
+\newcommand{\thepaperauthor}{Simon Nicolai Lefoli Maibom \& René Løwe Jacobsen}
+\newcommand{\personalid}{xvm226 \& vlx198 - 07/01/1992}
+\newcommand{\thesubject}{Project outside of course scope}
+\newcommand{\theinstitute}{Department of Computer Science}
+\newcommand{\thesupervisor}{Ken Friis Larsen} %behøves kun hvis findes
+
+\newenvironment{timesfont}{\fontfamily{mathptmx}\selectfont}{}
+
+\setlength\parskip{2ex}
+\newcommand{\n}[0]{\\[2ex]} %NEWLINE [2ex]
+\newcommand{\set}[1]{\{#1\}}
+\usepackage{hyperref}
+
+\newcommand{\fnurl}[2]{\href{#2}{#1}\footnote{\url{#2}}}  %foodnote url ref \fnurl{String}{Link}
+
+\newcommand{\premise}{\=\mbox{premise}}
+\newcommand{\assumption}{\=\mbox{assumption}}
+\newcommand{\landi}{\=\intro\land : }
+\newcommand{\lande}{\=\elim\land_{1} : }
+\newcommand{\landee}{\=\elim\land_{2} : }
+\newcommand{\lori}{\=\intro\lor_{1} : }
+\newcommand{\lorii}{\=\intro\lor_{2} : }
+\newcommand{\lore}{\=\elim\lor : }
+\newcommand{\toi}{\=\intro\to : }
+\newcommand{\toe}{\=\elim\to : }
+\newcommand{\lnoti}{\=\intro\lnot : }
+\newcommand{\lnote}{\=\elim\lnot : }
+\newcommand{\bote}{\=\elim\bot : }
+\newcommand{\lnege}{\=\lnot\elim\lnot : }
+\newcommand{\lnegi}{\=\lnot\intro\lnot : }
+\newcommand{\leqi}{\= \intro= }
+\newcommand{\leqe}{\= \elim= : }
+\newcommand{\lforalli}{\= \intro\forall : }
+\newcommand{\lforalle}{\= \elim\forall : }
+\newcommand{\lexistsi}{\= \intro\exists : }
+\newcommand{\lexistse}{\= \elim\exists : }
+\newcommand{\MT}{\=MT : }
+\newcommand{\PBC}{\=PBC : }
+\newcommand{\LEM}{\=LEM : }
+
+\newenvironment{changemargin}[1]{
+  \begin{list}{}{
+    \setlength{\voffset}{#1}
+  }
+  \item[]}{\end{list}}
+
+
+\usepackage{hyperref}
+\usepackage{pdfpages} % til at tilføje apendix
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+
+\def\thesection{\thechapter.\arabic{section}}
+%\renewcommand{\thesubsection} {\thesection.\alph{subsection}}
+
+\pagestyle{fancy}
+\fancyhead{}
+\fancyhead[LO,LE]{\shorttheassignment}
+\fancyhead[RO,RE]{\today}
+\fancyhead[CO,CE]{\theinstitute}
+
+\setcounter{secnumdepth}{0}
+\setcounter{tocdepth}{2}
 \begin{document}
-\maketitle
+
+\begin{titlepage}
+\begin{timesfont}
+% Import the ku frontpage graphics
+\ThisULCornerWallPaper{1}{nat-farve.pdf}
+% Import faculty title
+\ThisULCornerWallPaper{1}{nat-en.pdf}
+% For forklaring af vspace og stretch, se side 115 i ".. not so short .."
+% www.ctan.org/tex-archive/info/lshort/english/lshort.pdf
+\vspace*{3cm}
+\hspace*{-2.3cm}
+% Her vælger en kæmpe skrifttype og fed skrift
+\Huge\bfseries
+\vspace*{-0.5cm}
+\theassignment\n
+\hspace*{-2.4cm}
+-- \thesubassignment \n
+\LARGE
+\hspace*{-2.4cm}
+\vspace*{-0.5cm}
+\thesubject \\[2.2ex]
+\hspace*{-2.4cm}
+\vspace*{4.3cm}
+\theinstitute \n
+\hspace*{-2.38cm}
+\large
+\textbf{Written by:}\\[1ex]
+\hspace*{-2.33cm}
+\thepaperauthor \\
+\hspace*{-2.33cm}
+\personalid \\
+\hspace*{-2.33cm}
+% Nulstiller skriftstørrelse og type (f.eks. fed)
+\today
+\normalsize
+% VEJLEDER INFORMATION I PÅ FORSIDEN?
+%\thesubject \n
+
+\vspace*{3.2cm}
+\hspace*{-2.33cm}
+%\textbf{\emph{Supervised by:}}
+
+\hspace*{-2.33cm}
+%\thesupervisor
+
+\end{timesfont}
+\end{titlepage}
+\tableofcontents
+\newpage
 
 \input{introduction.tex}
 \input{analysis.tex}
@@ -82,4 +214,7 @@
 \input{security.tex}
 \input{improvements.tex}
 \input{conclusion.tex}
+\appendix
+\input{filespecifications.tex}
+\input{correctionmodules.tex}
 \end{document}
