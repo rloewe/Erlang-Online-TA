@@ -8,6 +8,18 @@ Currently it is not possible to update or remove assignments and modules. This
 should be a feature in the future.
 
 \subsection{Better error handling}
+The error handling in the code is currently very poor. There are many places in
+the code where we only match the good scenarios and do not match if it gives an
+error back.
+
+Places where it is especially urgent to address is when a module is added and
+when an assignment is build. Currently niether of these two places in the code
+checks for errors and assumes that everything is okay. To fix the error handling
+when a module is added, we should probably take an erl file in stead of a beam
+file, which we currently do, and compile it using \texttt{code:compile}.
+Fixing the error handling when an assignment is build, should be a lot easier
+as it should just use a \texttt{case} on the call and have a \texttt{try-catch}
+around it to catch the errors.
 
 \subsection{DoS protection/fairness algorithm}
 As written in the analysis, DoS protection through a scheduling algorithm with
@@ -36,11 +48,20 @@ would be nice if it was also possible to get that output from a file. This
 should be implemented as an extra field in the assignment configuration and then
 the correction scripts that are being run should then write that file.
 
+\subsection{Monitor \texttt{correct\_fsm}s and \texttt{gen\_assignment}s}
+The \texttt{correct\_fsm} and the \texttt{gen\_assignment} are vital parts of
+the system, though currently they are not monitored. So if they crash, they are
+not restarted. This can lead to problems, because the master just assumes that
+every node is running in perfect condition, if it as not gone down.
+
+\subsection{Ability to run scripts outside of the sandbox}
+As some scripts in the correction process can be set to be run outside of the
+sandbox with the keyword \texttt{unsafe}. Currently it is up to the module to
+decide whether it will do that or not, but it would be nice if it was not up to
+the correction module to handle this as it will make it easier to write such
+modules.
+
 \begin{itemize}
-    \item error handling, especially in regards to build in gen\_assignment and
-    add module (maybe use compile:file)
-    \item Run scripts out of sandbox
-    \item monitor correct\_fsms
     \item security, auth (restrict assignments to specific users)
     \item supervision trees
 \end{itemize}
