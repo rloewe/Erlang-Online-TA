@@ -1,56 +1,33 @@
 \section{Implementation}
 \subsection{Master server}
-To start the master server, the start function takes a filepath to the configuartion file with specifications, that can be seen ~\ref{sec:config}. It is also required that the there is a default.conf file in the directory where the master server is started from. Upon startup it loads the values of the config files and sets the cookie specified. It creates 3 directories "/Handins/", "Assignments/" and "/Modules/" that are used to store files uploaded to the server and creates a new process alongside the master server to monitor connecting and disconnecting nodes. The master state is a record type that consists of:
-\begin{itemize}
-\item nodes : is a dictionary of nodes as keys and the value is the list of sessiontokens of handin jobs running the node.
-\item sessions : is a dictionary of Sessiontokens as keys and a tuple of \{Assignment ID, Status of the handin job, Name of the directory under /Handins/ the handin files are located\}
-\item assignments : is a dictionary of AssignmentID as keys and a dictionary containing the parsed assignment config information.
-\item modules : is a dictionary where the key is the name of the module as an atom and the value is the filename of the module located under /Modules/
-\item queue : is a queue containing handin jobs if a node crashes and no other is available
-\item userSockets : a list of connected sockets from the webserver
-\end{itemize}
-If a node connects to the master, the master server spawns a process to send all current modules and assignments that have been added to the master server since startup. When Adding modules to the system, the master server saves the given binary of the modules beam file in the /Modules/ directory with the given module name, and updates the modules dictionary in the master state. When adding an assignment, the assignment configuartion file is checked if it is valid based on the specifications of ~/ref{sec:assignment}, if validated a folder with the assignment id is created under /Assignments/ where the required files are saved. When adding either modules or assignments the server will spawn a process that distributes the new module or assignment to all connected nodes to keep the server responsive.
+To start the master server, the start function takes a filepath to the configuartion file with specifications, that can be seen ~\ref{sec:config}. It is also required that the there is a default.conf file in the directory where the master server is started from. Upon startup it loads the values of the configuartion files and sets the cookie specified. It creates 3 directories Handins, Assignments and Modules that are used to store files uploaded to the server and creates a new process alongside the master server to monitor connecting and disconnecting nodes. The master state is a record type that consists of:
+\begin{description}
+    \item[nodes] Is a dictionary of nodes as keys and the value is the list of sessiontokens of submissions running the node.
+\item [sessions] Is a dictionary of Sessiontokens as keys and a tuple of \{Assignment ID, Status of the submission, Name of the directory in Handins the submission files are located\}
+\item [assignments]  is a dictionary of AssignmentID as keys and a dictionary containing the parsed assignment configuartion information.
+\item [modules]  is a dictionary where the key is the name of the module as an atom and the value is the filename of the module located in the modules Modules
+\item [queue] Contains the submissions if a node crashes and no other is available
+\item [userSockets] A list of connected sockets from the webserver
+\end{description}
+If a node connects to the master, the master server spawns a process to send all current modules and assignments that have been added to the master server since startup. When adding modules to the system, the master server saves the given binary of the modules beam file in the Modules directory with the given module name, and updates the modules dictionary in the master state. When adding an assignment, the assignment configuartion file is checked if it is valid based on the specifications of ~\ref{sec:assignment}, if validated a folder with the assignment id is created in the Assignments directory where the required files are saved. When adding either modules or assignments the server will spawn a process that distributes the new module or assignment to all connected nodes to keep the server responsive.
 
-Handin jobs are handled by checking if the given assignment ID is valid, if the assignment id is valid a sessiontoken is created by using makeref. The server spawns a process to save the files locally in a unqiue directory in /Handins/ and send the files, session token and assignment id to a node server to start a handin job. The master responds to the sender with the session token and a status stating the handin is receieved. Handin jobs are updated when the node server sends an asynchronous messages to the master with the update, it informs the user with the given session token with the status update and the result if the job is finished. If a job is finished, the master server deletes the handin files from the unique directory in /Handins/.
+Submissions are handled by checking if the given assignment ID is valid, if the assignment id is valid a sessiontoken is created by using \texttt{makeref}\footnote{\url{http://erlang.org/doc/man/erlang.html\#make_ref-0}}. The server spawns a process to save the files locally in a unqiue directory in Handins and send the files, session token and assignment id to a node server to start a submission. The master responds to the sender with the session token and a status stating the submission is receieved. Submissions are updated when the node server sends an asynchronous messages to the master with the updated status, it informs the user with the given session token with the status update and the result if the job is finished. If a job is finished, the master server deletes the submission files from the unique directory in Handins.
 
-The distribution over nodes is done at random, this should generate an even distribution of handin jobs over the nodes. Altho this does not ensure equal load on the node servers as it does not distinguish between general workload of the jobs. If a node dies with running jobs, the monitor gets notified and makes a asynchronous message to the master. The master then redistributes the jobs over the remaining nodes, if no nodes are available the jobs are put into queue and restarted when a new node connects.
+The distribution over nodes is done at random, this should generate an even distribution of submissions over the nodes. Although this does not ensure equal load on the node servers as it does not distinguish between general workload of the jobs. If a node dies with running jobs, the monitor gets notified and makes a asynchronous message to the master. The master then redistributes the jobs over the remaining nodes, if no nodes are available the jobs are put into queue and restarted when a new node connects.
 \subsection{Node server}
-The node server reads the configuartion file and creates the same 3 directories as the master on startup, it initiates a number of correction process finite state machines, the number is specified currently in init call. The node states record type is defined as:
-\begin{itemize}
-     \item queue : a queue of a handin waiting to be started on the correction FSM, the item in the queue is a 3 tuple consistant of \{Assignment ID, Path name to handin files in /Handins/, Session token of the handin job\}
-     \item assignments : A dictionary with assignment ID as key and tuple as value \{Pid to the gen assigment for the requested module, Assignment dictionary containing relevant information of a assignment configuartion\}
-     \item currentJobs : a tuple list where the tuple is defined as : \{FsmPID : PID to a started correction process, FsmStatus : is either free or inuse, SessionToken: The sessiontoken of the job running or none, HandinArgs : Tuple containing relevant arguments to the correction process\}.
-     \item masterNode : The masternode node name.
-     \item modules : A dictionary with modulename as key and the running module on the node server as value.
- \end{itemize}
-Adding of module does the same as the master server, in addition the module is loaded onto the node server. In addition to saving files when adding assignments, the node server calls the gen\_assignment build process in a new process with the specifications to the given sandbox requested.
+The node server reads the configuartion file and creates the same 3 directories as the master on startup, it initiates a number of correction process finite state machines, the number is currently hardcoded in init call. The node states record type is defined as:
+\begin{description}
+     \item [queue] Contains submission waiting to be started on the correction FSM, the item in the queue is a 3 tuple consistant of \{Assignment ID, Path name to submission files in Handins, Session token of the submission\}
+     \item [assignments] A dictionary with assignment ID as key and tuple as value \{Pid to the gen assigment for the requested module, Assignment dictionary containing relevant information of a assignment configuartion\}
+     \item [currentJobs] a tuple list where the tuple is defined as : \{FsmPID : PID to a started correction process, FsmStatus : is either free or inuse, SessionToken: The sessiontoken of the job running or none, SubmissionArgs : Tuple containing relevant arguments to the correction process\}.
+     \item [masterNode] The masternode node name.
+     \item [modules]  A dictionary with modulename as key and the running module on the node server as value.
+ \end{description}
+When adding a module to the node, it loads the module into the node server and saves the binary file.
 
-When a job is received, the node looks thought the currentjobs tuplelist for a free FSM, if a FSM is found the currentJobs is updated with relevant informations and marked as inuse and a call to the FSM is issued to start the correction process. If all FSM's are in use they are put into the queue. The node server sends a asynchronous message to the master server updating the relevant status of the handin. After a job is finished, the node server updates the master with the result and status and dequeues a job onto an available FSM.
-\subsection{Specifications of files}
-\subsubsection{Configfile}
-\label{sec:config}
-The config file seperates each parameter by a newline, where each parameter is specified as param = value.
-The list below specifies the requires parameters, the parameter names are case sensitive.
-\begin{itemize}
-    \item Cookie : Required by both master and node, is the name of the cookie the server and nodes run on.
-    \item Master : Required in the node server only, the value is name@hostname, name is the name of the master server specified upon startup of the master, and hostname is the hostname the master server runs under.
-\end{itemize}
-\subsubsection{AssignmentConfigFile}
-\label{sec:assignment}
-The assignment config files seperates each parameter by a newline, where each parameter is specified as param = value. If multiple values are required they are comma seperated, but still on one line. A default variable name called "defaults.conf" is required, containing the not required fields.
-The list below specifies the requires parameters, the parameter names are case insensitive.
-\begin{itemize}
-    \item assignmentid : Required field, value is the name of the assignment.
-    \item module : Required field, name is the module the assignment wants to use, requires the module to be uploaded to the server.
-    \item runorder : Required field, comma seperated values, the values is the filename of the scripts to be run in the given order. A script can be marked to be run outside the requested module sandbox, this is specified as unsafe <Value>.
-    \item required\_libs : Required field, commma seperated values, the name of the libaries the assignment needs to run a handin. If no libs are required the value must be required\_libs =
-    \item disk : Not required field, must be either the value enabled or disabled. If this field is not present it is set to default value.
-    \item network : Not required field, must be either the value enabled or disabled. If this field is not present it is set to default value.
-    \item maxmem : Not required field, must be a integer value. If this field is not present it is set to default value.
-    \item maxtime : Not required field, must be a integer value. If this field is not present it is set to default value.
-\end{itemize}
+If the master server adds an assignment to the node, it saves the assignment files in the Assignment folder and calls the \texttt{gen\_assignment} build process in a new process with the specifications to the given sandbox requested and builds the required image for the submission jobs.
 
-
+When a job is received, the node looks thought the currentjobs tuplelist for a free FSM, if a FSM is found the currentJobs is updated with relevant informations and marked as inuse and a call to the FSM is issued to start the correction process. If all FSM's are in use they are put into the queue. The node server sends a asynchronous message to the master server updating the relevant status of the submission. After a job is finished, the node server updates the master with the result and status and dequeues a job onto an available FSM.
 
 \subsection{Correction process}
 To correct assignments we need a way to sandbox them. But we do not expect that
@@ -75,7 +52,7 @@ To make a module for the correction process we have created a behaviour called
     \texttt{\{error, ErrorMsg\}}, if it fails, or
     \texttt{\{ok, Cmd, StartUpTime\}}, where \texttt{Cmd} will be run as a shell
     command. It can also throw an error using \texttt{erlang:error}, which
-    should be either \texttt{disk} or \texttt{network}, if the config for the
+    should be either \texttt{disk} or \texttt{network}, if the configuartion for the
     assignment gives back gibberish for either of those two.
 \end{description}
 
@@ -103,3 +80,26 @@ The reason for dividing \texttt{correct\_fsm} and \texttt{gen\_assignment} into
 two different processes was to make it possible to start a fixed number of
 \texttt{correct\_fsm} processes at startup and then make them able to correct
 all sorts of assignments.
+\subsection{Specifications of files}
+\subsubsection{Configfile}
+\label{sec:config}
+The configuartion file seperates each parameter by a newline, where each parameter is specified as param = value.
+The list below specifies the requires parameters, the parameter names are case sensitive.
+\begin{description}
+    \item[Cookie] Required by both master and node, is the name of the cookie the server and nodes run on.
+    \item[Master] Required in the node server only, the value is name@ip, name is the name of the master server specified upon startup of the master.
+\end{description}
+\subsubsection{AssignmentConfigFile}
+\label{sec:assignment}
+The assignment configuartion files seperates each parameter by a newline, where each parameter is specified as param = value. If multiple values are required they are comma seperated, but still on one line. A default variable name called "defaults.conf" is required, containing the not required fields.
+The list below specifies the requires parameters, the parameter names are case insensitive.
+\begin{description}
+    \item [assignmentid] Required field, value is the name of the assignment.
+    \item [module] Required field, name is the module the assignment wants to use, requires the module to be uploaded to the server.
+    \item [runorder] Required field, comma seperated values, the values is the filename of the scripts to be run in the given order. A script can be marked to be run outside the requested module sandbox, this is specified as unsafe $<$Value$>$.
+    \item [required\_libs] Required field, commma seperated values, the name of the libaries the assignment needs to run a submissions. If no libs are required the value must be \texttt{required\_libs =}
+    \item [disk] Not required field, must be either enabled or disabled. If this field is not present it is set to default value.
+    \item [network] Not required field, must be either enabled or disabled. If this field is not present it is set to default value.
+    \item [maxmem] Not required field, must be a integer value. If this field is not present it is set to default value.
+    \item [maxtime] Not required field, must be a integer value. If this field is not present it is set to default value.
+\end{description}
