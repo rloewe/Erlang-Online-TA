@@ -103,3 +103,10 @@ The list below specifies the requires parameters, the parameter names are case i
     \item [maxmem] Not required field, must be a integer value. If this field is not present it is set to default value.
     \item [maxtime] Not required field, must be a integer value. If this field is not present it is set to default value.
 \end{description}
+
+\section{Quality assesment}
+
+
+The tests show that adding assignments or starting submissions before their dependant module or assignment have been added, will respond to the user with an appropiate error message. Adding a bad module file to the system will cause the master to accept it and save it, but the node will not load it and not allow assignments to use the specific module. The master will still accept assignments configuartion dependant on the bad module, but the assignment wont accept on the node as the module does not exist on it. If a submission is send, an error from the node server is propegated back to the user that the assignment is not valid. When adding a bad formed assignment configuartion file, the master server will crash. If the erlang module is added that can compile and load, but contains an error for the build or run process, the node server will crash if an submission is added using the specific module.
+
+Preformance wise we tested starting running 1000 simple haskell submissions on 4 nodes, the submission compiles and computes the faculty function of 5 and 10. The 1000 submissions took around 2 mins and 20 seconds. If we took down nodes while running the submissions, the submissions would be distributed to the other connected nodes. The master server would queue remaining submissions if all nodes went down, and restart them when a new node connected.
