@@ -1,10 +1,10 @@
-\section{Implementation}
+\chapter{Implementation}
 The implementation of the system has been done as a master-slave architecture
 with the slaves (called nodes afterwards) uses FSM to correct assignments.
 In this part we aim to enlighten you on how our implementation is made and how
 it works.
 
-\subsection{Master server}
+\section{Master server}
 To start the master server, the start function takes a filepath to the configuartion file with specifications, that can be seen ~\ref{sec:config}. It is also required that the there is a default.conf file in the directory where the master server is started from. Upon startup it loads the values of the configuartion files and sets the cookie specified. It creates 3 directories Handins, Assignments and Modules that are used to store files uploaded to the server and creates a new process alongside the master server to monitor connecting and disconnecting nodes. The master state is a record type that consists of:
 \begin{description}
     \item[nodes] Is a dictionary of nodes as keys and the value is the list of sessiontokens of submissions running the node.
@@ -19,7 +19,7 @@ If a node connects to the master, the master server spawns a process to send all
 Submissions are handled by checking if the given assignment ID is valid, if the assignment id is valid a sessiontoken is created by using \texttt{makeref}\footnote{\url{http://erlang.org/doc/man/erlang.html\#make_ref-0}}. The server spawns a process to save the files locally in a unqiue directory in Handins and send the files, session token and assignment id to a node server to start a submission. The master responds to the sender with the session token and a status stating the submission is receieved. Submissions are updated when the node server sends an asynchronous messages to the master with the updated status, it informs the user with the given session token with the status update and the result if the job is finished. If a job is finished, the master server deletes the submission files from the unique directory in Handins.
 
 The distribution over nodes is done at random, this should generate an even distribution of submissions over the nodes. Although this does not ensure equal load on the node servers as it does not distinguish between general workload of the jobs. If a node dies with running jobs, the monitor gets notified and makes a asynchronous message to the master. The master then redistributes the jobs over the remaining nodes, if no nodes are available the jobs are put into queue and restarted when a new node connects.
-\subsection{Node server}
+\section{Node server}
 The node server reads the configuartion file and creates the same 3 directories as the master on startup, it initiates a number of correction process finite state machines, the number is currently hardcoded in init call. The node states record type is defined as:
 \begin{description}
      \item [queue] Contains submission waiting to be started on the correction FSM, the item in the queue is a 3 tuple consistant of \{Assignment ID, Path name to submission files in Handins, Session token of the submission\}
@@ -34,13 +34,13 @@ If the master server adds an assignment to the node, it saves the assignment fil
 
 When a job is received, the node looks thought the currentjobs tuplelist for a free FSM, if a FSM is found the currentJobs is updated with relevant informations and marked as inuse and a call to the FSM is issued to start the correction process. If all FSM's are in use they are put into the queue. The node server sends a asynchronous message to the master server updating the relevant status of the submission. After a job is finished, the node server updates the master with the result and status and dequeues a job onto an available FSM.
 
-\subsection{Correction process}
+\section{Correction process}
 To correct assignments we need a way to sandbox them. But we do not expect that
 we are able to please everybody by choosing a specific sandbox. Therefore we
 have implemented a behaviour, such that different modules can be added in the
 future.
 
-\subsubsection{gen\_assignment}
+\subsection{gen\_assignment}
 To make a module for the correction process we have created a behaviour called
 \texttt{gen\_assignment}. It requires 3 callback functions:
 \begin{description}
@@ -72,7 +72,7 @@ listen for new submissions.
 We have created and tested two modules during the project using docker and safe
 Haskell. A description of those can be found in the appendix.
 
-\subsubsection{correct\_fsm}
+\subsection{correct\_fsm}
 The \texttt{correct\_fsm} is implemented as a \texttt{gen\_fsm} behaviour with
 three states.
 \begin{description}
@@ -89,7 +89,7 @@ two different processes was to make it possible to start a fixed number of
 \texttt{correct\_fsm} processes at startup and then make them able to correct
 all sorts of assignments.
 
-\section{Quality assesment}
+\chapter{Quality assesment}
 
 
 The tests show that adding assignments or starting submissions before their dependant module or assignment have been added, will respond to the user with an appropiate error message. Adding a bad module file to the system will cause the master to accept it and save it, but the node will not load it and not allow assignments to use the specific module. The master will still accept assignments configuartion dependant on the bad module, but the assignment wont accept on the node as the module does not exist on it. If a submission is send, an error from the node server is propegated back to the user that the assignment is not valid. When adding a bad formed assignment configuartion file, the master server will crash. If the erlang module is added that can compile and load, but contains an error for the build or run process, the node server will crash if an submission is added using the specific module.

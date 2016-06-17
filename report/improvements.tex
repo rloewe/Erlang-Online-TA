@@ -1,13 +1,13 @@
-\section{Improvements}
+\chapter{Improvements}
 The code we have made, in this project, is not complete nor perfect. Therefore
 we have this part of our report to discuss new features or improvements to the
 project.
 
-\subsection{Remove/update assignments and modules}
+\section{Remove/update assignments and modules}
 Currently it is not possible to update or remove assignments and modules. This
 should be a feature in the future.
 
-\subsection{Better error handling}
+\section{Better error handling}
 The error handling in the code is currently very poor. There are many places in
 the code where we only match the good scenarios and do not match if it gives an
 error back.
@@ -21,11 +21,11 @@ Fixing the error handling, when an assignment is build should, be a lot easier
 as it should just use a \texttt{case} on the \texttt{build} call and have a
 \texttt{try-catch} around it to catch the errors.
 
-\subsection{DoS protection/fairness algorithm}
+\section{DoS protection/fairness algorithm}
 As written in the analysis, DoS protection through a scheduling algorithm with
 fairness would have been a great thing to implement in this project.
 
-\subsection{Better interface}
+\section{Better interface}
 Currently the web-interface for the project is very sparse and not very good.
 It basically just shows that we are able to do some communication with the
 master server. This should definitely be improved such that different people get
@@ -36,25 +36,25 @@ Another thing would be to design an interface that is nice to look at. But as we
 are Computer Science students, we normally think command line interfaces are
 good enough and therefore we should probably not be the ones designing it.
 
-\subsection{Date range for assignments}
+\section{Date range for assignments}
 A nice feature to add would be to add a date range for the assignments, such
 that they only are active during that period. Of course it should also be
 possible to circumvent that date range for certain people, so they can test it
 before it launches.
 
-\subsection{Possibility to get correction output from file}
+\section{Possibility to get correction output from file}
 Currently it is only possible to get correction output from \texttt{stdout}. It
 would be nice if it was also possible to get that output from a file. This
 should be implemented as an extra field in the assignment configuration and then
 the correction scripts that are being run should then write that file.
 
-\subsection{Monitor \texttt{correct\_fsm}s and \texttt{gen\_assignment}s}
+\section{Monitor \texttt{correct\_fsm}s and \texttt{gen\_assignment}s}
 The \texttt{correct\_fsm} and the \texttt{gen\_assignment} are vital parts of
 the system, though currently they are not monitored. So if they crash, they are
 not restarted. This can lead to problems, because the master just assumes that
 every node is running in perfect condition, if it as not gone down.
 
-\subsection{Ability to run scripts outside of the sandbox}
+\section{Ability to run scripts outside of the sandbox}
 As some scripts in the correction process can be set to be run outside of the
 sandbox with the keyword \texttt{unsafe}. Currently it is up to the module to
 decide whether it will do that or not. But it would be nice if it was not up to

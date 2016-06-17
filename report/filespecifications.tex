@@ -1,5 +1,5 @@
-\section{Specifications of files}
-\subsection{Configfile}
+\chapter{Specifications of files}
+\section{Configfile}
 \label{sec:config}
 The configuartion file seperates each parameter by a newline, where each parameter is specified as param = value.
 The list below specifies the requires parameters, the parameter names are case sensitive.
@@ -7,7 +7,7 @@ The list below specifies the requires parameters, the parameter names are case s
     \item[Cookie] Required by both master and node, is the name of the cookie the server and nodes run on.
     \item[Master] Required in the node server only, the value is name@ip, name is the name of the master server specified upon startup of the master.
 \end{description}
-\subsection{AssignmentConfigFile}
+\section{AssignmentConfigFile}
 \label{sec:assignment}
 The assignment configuartion files seperates each parameter by a newline, where each parameter is specified as param = value. If multiple values are required they are comma seperated, but still on one line. A default variable name called "defaults.conf" is required, containing the not required fields.
 The list below specifies the requires parameters, the parameter names are case insensitive.
